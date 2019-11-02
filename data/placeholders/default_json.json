@@ -1,0 +1,51 @@
+{
+	"game":"linkino",
+	"author":"Andrea Nardinocchi",
+	"email":"andrea@nardinan.it",
+	"date":"November 2019",
+	"window":{
+		"width":1024,
+		"height":768,
+		"fullscreen":false
+	},
+	"geometry":{
+		"width":1024,
+		"height":768,
+		"scale":1
+	},
+	"language":0,
+	"volume_effects":1.364706,
+	"volume_music":1.364706,
+	"fonts":[{
+		"font":"bobcaygr_font",
+		"size":20
+	},{
+		"font":"bobcaygr_font",
+		"size":40
+	},{
+		"font":"bobcaygr_font",
+		"size":60
+	}],
+	"ui":{
+		"field":{
+			"size":255
+		},
+		"checkbox":{
+			"checked":"checkbox_selected_C",
+			"unchecked":"checkbox_active_C"
+		},
+		"list":{
+			"selected_G":255,
+			"selected_A":60,
+			"over_R":255,
+			"over_G":255,
+			"over_B":255,
+			"over_A":20
+		},
+		"scroll":{
+			"scroll":"scroll_toggle",
+			"pointer":"scroll_pointer",
+			"width":10
+		}
+	}
+}
