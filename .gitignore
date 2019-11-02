@@ -1,0 +1,18 @@
+*.o     # exclude object files
+*.bin   # exclude executable
+
+collector\.dump\.dat
+
+*.o
+
+*.bin
+
+\.DS_Store
+
+*.out
+
+collector\.dump\.end\.game
+
+cmake-build-debug/
+
+.idea/workspace.xml
