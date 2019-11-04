@@ -17,9 +17,11 @@
  */
 #include "loader.obj.h"
 #include "connector_factory.obj.h"
+#include "connectable.obj.h"
 struct s_object *loader;
 struct s_object *label_camera;
 struct s_object *default_draw_camera, *default_ui_camera;
+struct s_object *connectable;
 t_boolean v_initialized;
 int linkino_load_call_start(struct s_object *environment) {
   if ((loader = f_loader_new(d_new(loader), environment))) {
@@ -31,9 +33,23 @@ int linkino_loop_call(struct s_object *environment) {
   if (!v_initialized) {
     if (!d_call(loader, m_runnable_running, NULL)) {
       struct s_loader_attributes *loader_attributes = d_cast(loader, loader);
+      struct s_media_factory_attributes *media_factory_attributes = d_cast(loader_attributes->media_factory, media_factory);
       struct s_object *connector_factory = f_connector_factory_new(d_new(connector_factory),
         d_call(loader_attributes->media_factory, m_media_factory_get_bitmap, "line_spot"));
+      struct s_object *stream;
       d_call(environment, m_environment_add_drawable, connector_factory, 5, e_environment_surface_primary);
+      if ((stream = d_call(media_factory_attributes->resources_png, m_resources_get_stream_strict, "router", e_resources_type_common))) {
+        struct s_object *router;
+        if ((router = f_connectable_new(d_new(connectable), stream, environment))) {
+          d_call(router, m_drawable_set_position, 100.0, 100.0);
+          d_call(router, m_connectable_add_connection_point, 0.0, 5.0,   "A");
+          d_call(router, m_connectable_add_connection_point, 0.0, 20.0,  "B");
+          d_call(router, m_connectable_add_connection_point, 0.0, 33.0,  "C");
+          d_call(router, m_connectable_add_connection_point, 40.0, 20.0, "D");
+          d_call(router, m_connectable_add_connection_point, 40.0, 33.0, "E");
+          d_call(environment, m_environment_add_drawable, router, 5, e_environment_surface_primary);
+        }
+      }
       v_initialized = d_true;
     }
   } else {
@@ -89,8 +105,7 @@ int main(int argc, char *argv[]) {
       }
       scale_resolution_x = (v_linkino_width_reference * v_linkino_scale_factor);
       scale_resolution_y = (v_linkino_height_reference * v_linkino_scale_factor);
-      environment =
-        f_environment_new_fullscreen(d_new(environment), v_linkino_width_window, v_linkino_height_window, v_linkino_fullscreen);
+      environment = f_environment_new_fullscreen(d_new(environment), v_linkino_width_window, v_linkino_height_window, v_linkino_fullscreen);
       d_call(environment, m_environment_set_methods, &linkino_load_call_start, &linkino_loop_call, &linkino_quit_call);
       if ((default_draw_camera =
              f_camera_new(d_new(camera), 0.0, 0.0, v_linkino_width_window, v_linkino_height_window, e_environment_surface_primary, environment))) {

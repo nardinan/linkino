@@ -18,8 +18,13 @@
 #ifndef linkino_connectable_h
 #define linkino_connectable_h
 #include "miranda.h"
-#define d_connectable_width 50
-#define d_connectable_height 50
+#define d_connectable_width 10
+#define d_connectable_height 10
+#define d_connectable_rectangle_elements 4
+#define d_connectable_rectangle_R 10
+#define d_connectable_rectangle_G 255
+#define d_connectable_rectangle_B 10
+#define d_connectable_rectangle_A 100
 struct s_connection_node { d_list_node_head;
   double offset_x, offset_y, width, height;
   char label[d_string_buffer_size];
@@ -28,11 +33,14 @@ d_declare_class(connectable) {
   struct s_attributes head;
   struct s_list list_connection_nodes;
   struct s_connection_node *selected_node;
+  int rectangle_x[d_connectable_rectangle_elements], rectangle_y[d_connectable_rectangle_elements];
+  t_boolean draw_rectangle;
 } d_declare_class_tail(connectable);
-struct s_connectable_attributes *p_connectable_alloc(struct s_object *self);
-extern struct s_object *f_connectable_new(struct s_object *self);
+struct s_connectable_attributes *p_connectable_alloc(struct s_object *self, struct s_object *stream, struct s_object *environment);
+extern struct s_object *f_connectable_new(struct s_object *self, struct s_object *stream, struct s_object *environment);
 d_declare_method(connectable, add_connection_point)(struct s_object *self, double offset_x, double offset_y, const char *label);
 d_declare_method(connectable, get_selected_node)(struct s_object *self);
 d_declare_method(connectable, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event);
+d_declare_method(connectable, draw)(struct s_object *self, struct s_object *environment);
 d_declare_method(connectable, delete)(struct s_object *self, struct s_connectable_attributes *attributes);
 #endif
