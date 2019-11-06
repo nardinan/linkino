@@ -100,6 +100,9 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
       d_call(current_connectable, m_eventable_event, environment, current_event);
   d_foreach(&(connectable_factory_attributes->list_templates), current_template, struct s_connectable_factory_template)
     d_call_owner(current_template->uiable_button, uiable, m_eventable_event, environment, current_event);
+  /* we need to consider what happens if the button is clicked (so we have an active template) */
+  if (connectable_factory_attributes->active_template)
+    changed = d_true;
   d_cast_return(((changed) ? e_eventable_status_captured : e_eventable_status_ignored));
 }
 d_define_method_override(connectable_factory, draw)(struct s_object *self, struct s_object *environment) {

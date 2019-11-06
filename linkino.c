@@ -16,8 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "loader.obj.h"
-#include "connector_factory.obj.h"
-#include "connectable_factory.obj.h"
+#include "director.obj.h"
 struct s_object *loader;
 struct s_object *label_camera;
 struct s_object *default_draw_camera, *default_ui_camera;
@@ -33,23 +32,25 @@ int linkino_loop_call(struct s_object *environment) {
     if (!d_call(loader, m_runnable_running, NULL)) {
       struct s_loader_attributes *loader_attributes = d_cast(loader, loader);
       struct s_media_factory_attributes *media_factory_attributes = d_cast(loader_attributes->media_factory, media_factory);
-      struct s_object *connector_factory = f_connector_factory_new(d_new(connector_factory),
-        d_call(loader_attributes->media_factory, m_media_factory_get_bitmap, "line_spot"));
-      struct s_object *stream;
-      d_call(environment, m_environment_add_drawable, connector_factory, 5, e_environment_surface_primary);
-      if ((stream = d_call(media_factory_attributes->resources_png, m_resources_get_stream_strict, "router", e_resources_type_common))) {
-        struct s_object *connectable_factory;
-        double links_x[] = {0.0, 0.0, 0.0, 40.0, 40.0}, links_y[] = {5.0, 20.0, 33.0, 20.0, 33.0};
-        if ((connectable_factory = f_connectable_factory_new(d_new(connectable_factory), loader_attributes->ui_factory, environment))) {
-          d_call(connectable_factory, m_connectable_factory_add_connectable_template, stream, "ROUTER", "Questa prova al gusto di mozzarella",
-            links_x, links_y, (size_t)5);
-          d_call(environment, m_environment_add_drawable, connectable_factory, 5, e_environment_surface_primary);
-        }
-      }
+      struct s_object *director = f_director_new(d_new(director), environment, loader_attributes->ui_factory, loader_attributes->media_factory);
+      double offsets_x_router[] = {
+        0.0,
+        0.0,
+        0.0,
+        40.0,
+        40.0
+      }, offsets_y_router[] = {
+        5.0,
+        20.0,
+        33.0,
+        20.0,
+        33.0
+      };
+      d_call(director, m_director_add_node, "router", "ROUTER", "A router that privides the basic connectibility between nodes", offsets_x_router,
+        offsets_y_router, (size_t)5);
+      d_call(environment, m_environment_add_drawable, director, 5, e_environment_surface_primary);
       v_initialized = d_true;
     }
-  } else {
-
   }
   return d_true;
 }
