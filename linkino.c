@@ -17,11 +17,10 @@
  */
 #include "loader.obj.h"
 #include "connector_factory.obj.h"
-#include "connectable.obj.h"
+#include "connectable_factory.obj.h"
 struct s_object *loader;
 struct s_object *label_camera;
 struct s_object *default_draw_camera, *default_ui_camera;
-struct s_object *connectable;
 t_boolean v_initialized;
 int linkino_load_call_start(struct s_object *environment) {
   if ((loader = f_loader_new(d_new(loader), environment))) {
@@ -39,15 +38,12 @@ int linkino_loop_call(struct s_object *environment) {
       struct s_object *stream;
       d_call(environment, m_environment_add_drawable, connector_factory, 5, e_environment_surface_primary);
       if ((stream = d_call(media_factory_attributes->resources_png, m_resources_get_stream_strict, "router", e_resources_type_common))) {
-        struct s_object *router;
-        if ((router = f_connectable_new(d_new(connectable), stream, environment))) {
-          d_call(router, m_drawable_set_position, 100.0, 100.0);
-          d_call(router, m_connectable_add_connection_point, 0.0, 5.0,   "A");
-          d_call(router, m_connectable_add_connection_point, 0.0, 20.0,  "B");
-          d_call(router, m_connectable_add_connection_point, 0.0, 33.0,  "C");
-          d_call(router, m_connectable_add_connection_point, 40.0, 20.0, "D");
-          d_call(router, m_connectable_add_connection_point, 40.0, 33.0, "E");
-          d_call(environment, m_environment_add_drawable, router, 5, e_environment_surface_primary);
+        struct s_object *connectable_factory;
+        double links_x[] = {0.0, 0.0, 0.0, 40.0, 40.0}, links_y[] = {5.0, 20.0, 33.0, 20.0, 33.0};
+        if ((connectable_factory = f_connectable_factory_new(d_new(connectable_factory), loader_attributes->ui_factory, environment))) {
+          d_call(connectable_factory, m_connectable_factory_add_connectable_template, stream, "ROUTER", "Questa prova al gusto di mozzarella",
+            links_x, links_y, (size_t)5);
+          d_call(environment, m_environment_add_drawable, connectable_factory, 5, e_environment_surface_primary);
         }
       }
       v_initialized = d_true;

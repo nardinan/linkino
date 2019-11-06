@@ -14,7 +14,7 @@ add_executable(linkino
         connector.obj.h
         connector.obj.c
         connector_factory.obj.h
-        connector_factory.obj.c connectable.obj.h connectable.obj.c)
+        connector_factory.obj.c connectable.obj.h connectable.obj.c connectable_factory.obj.h connectable_factory.obj.c)
 
 INCLUDE(FindPkgConfig)
 PKG_SEARCH_MODULE(SDL2 REQUIRED sdl2)
