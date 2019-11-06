@@ -18,16 +18,18 @@
 #ifndef linkino_connector_h
 #define linkino_connector_h
 #include "miranda.h"
+#include "connectable.obj.h"
 d_declare_class(connector) {
   struct s_attributes head;
   struct s_object *starting_point, *destination_point;
   struct s_object *drawable;
   double separation;
+  struct s_connection_node *source_link, *destination_link;
 } d_declare_class_tail(connector);
 struct s_connector_attributes *p_connector_alloc(struct s_object *self);
-extern struct s_object *f_connector_new(struct s_object *self, struct s_object *drawable, double source_x, double source_y);
-d_declare_method(connector, set_starting)(struct s_object *self, double starting_x, double starting_y);
-d_declare_method(connector, set_destination)(struct s_object *self, double destination_x, double destination_y);
+extern struct s_object *f_connector_new(struct s_object *self, struct s_object *drawable, double source_x, double source_y, struct s_connection_node *link);
+d_declare_method(connector, set_starting)(struct s_object *self, double starting_x, double starting_y, struct s_connection_node *link);
+d_declare_method(connector, set_destination)(struct s_object *self, double destination_x, double destination_y, struct s_connection_node *link);
 d_declare_method(connector, draw)(struct s_object *self, struct s_object *environment);
 d_declare_method(connector, delete)(struct s_object *self, struct s_connector_attributes *attributes);
 #endif

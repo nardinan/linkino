@@ -67,6 +67,13 @@ d_define_method(connectable_factory, add_connectable_template)(struct s_object *
   }
   return self;
 }
+d_define_method(connectable_factory, get_selected_node)(struct s_object *self) {
+  d_using(connectable_factory);
+  struct s_connection_node *result = connectable_factory_attributes->active_node;
+  /* the routine takes the latest selected node, then it resets the pointer to NULL in order to be ready for the next release */
+  connectable_factory_attributes->active_node = NULL;
+  d_cast_return(result);
+}
 d_define_method(connectable_factory, click_received)(struct s_object *self, struct s_connectable_factory_template *template) {
   d_using(connectable_factory);
   if (!connectable_factory_attributes->active_template)
@@ -95,9 +102,14 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
       connectable_factory_attributes->active_template = NULL;
     }
     changed = d_true;
-  } else
+  } else {
     d_array_foreach(connectable_factory_attributes->array_connectable_instances, current_connectable)
-      d_call(current_connectable, m_eventable_event, environment, current_event);
+      if (((intptr_t)d_call(current_connectable, m_eventable_event, environment, current_event)) == e_eventable_status_captured) {
+        struct s_connection_node *connection_node;
+        if ((connection_node = d_call(current_connectable, m_connectable_get_selected_node, NULL)))
+          connectable_factory_attributes->active_node = connection_node;
+      }
+  }
   d_foreach(&(connectable_factory_attributes->list_templates), current_template, struct s_connectable_factory_template)
     d_call_owner(current_template->uiable_button, uiable, m_eventable_event, environment, current_event);
   /* we need to consider what happens if the button is clicked (so we have an active template) */
@@ -154,6 +166,7 @@ d_define_method(connectable_factory, delete)(struct s_object *self, struct s_con
   return NULL;
 }
 d_define_class(connectable_factory) {d_hook_method(connectable_factory, e_flag_public, add_connectable_template),
+                                     d_hook_method(connectable_factory, e_flag_public, get_selected_node),
                                      d_hook_method(connectable_factory, e_flag_public, click_received),
                                      d_hook_method_override(connectable_factory, e_flag_public, eventable, event),
                                      d_hook_method_override(connectable_factory, e_flag_public, drawable, draw),

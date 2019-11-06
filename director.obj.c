@@ -49,9 +49,12 @@ d_define_method(director, add_node)(struct s_object *self, const char *stream_ic
 d_define_method_override(director, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event) {
   d_using(director);
   t_boolean changed = d_true;
-  if (((intptr_t)d_call(director_attributes->connectable_factory, m_eventable_event, environment, current_event)) != e_eventable_status_captured)
+  if (((intptr_t)d_call(director_attributes->connectable_factory, m_eventable_event, environment, current_event)) != e_eventable_status_captured) {
+    struct s_object *result = d_call(director_attributes->connectable_factory, m_connectable_factory_get_selected_node, NULL);
+    d_call(director_attributes->connector_factory, m_connector_factory_set_drop, ((result) ? d_true : d_false), result);
     if (((intptr_t)d_call(director_attributes->connector_factory, m_eventable_event, environment, current_event)) != e_eventable_status_captured)
       changed = d_false;
+  }
   d_cast_return(((changed) ? e_eventable_status_captured : e_eventable_status_ignored));
 }
 d_define_method_override(director, draw)(struct s_object *self, struct s_object *environment) {

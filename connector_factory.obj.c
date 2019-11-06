@@ -31,6 +31,17 @@ struct s_object *f_connector_factory_new(struct s_object *self, struct s_object 
   }
   return self;
 }
+d_define_method(connector_factory, set_drop)(struct s_object *self, t_boolean approve_drop, struct s_connection_node *link) {
+  d_using(connector_factory);
+  connector_factory_attributes->approve_drop = approve_drop;
+  if (approve_drop) {
+    if (connector_factory_attributes->active_connector)
+      connector_factory_attributes->destination_link = link;
+    else
+      connector_factory_attributes->source_link = link;
+  }
+  return self;
+}
 d_define_method_override(connector_factory, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event) {
   d_using(connector_factory);
   t_boolean changed = d_false;
@@ -43,17 +54,24 @@ d_define_method_override(connector_factory, event)(struct s_object *self, struct
        * - right click (removes the active connector)
        * Anyway, before doing anything, we need to update the destination of the active_connector using the current position of the mouse
        */
-      d_call(connector_factory_attributes->active_connector, m_connector_set_destination, (double)mouse_x, (double)mouse_y);
+      d_call(connector_factory_attributes->active_connector, m_connector_set_destination, (double)mouse_x, (double)mouse_y,
+        connector_factory_attributes->destination_link);
       if (current_event->type == SDL_MOUSEBUTTONDOWN) {
-        if (current_event->button.button == SDL_BUTTON_LEFT)
-          d_call(connector_factory_attributes->array_of_connectors, m_array_push, connector_factory_attributes->active_connector);
-        d_delete(connector_factory_attributes->active_connector);
-        connector_factory_attributes->active_connector = NULL;
+        if ((connector_factory_attributes->approve_drop) && (connector_factory_attributes->destination_link)) {
+          if (current_event->button.button == SDL_BUTTON_LEFT)
+            d_call(connector_factory_attributes->array_of_connectors, m_array_push, connector_factory_attributes->active_connector);
+          d_delete(connector_factory_attributes->active_connector);
+          connector_factory_attributes->active_connector = NULL;
+          connector_factory_attributes->source_link = NULL;
+          connector_factory_attributes->destination_link = NULL;
+        }
       }
       changed = d_true;
     } else if ((current_event->type == SDL_MOUSEBUTTONDOWN) && (current_event->button.button == SDL_BUTTON_LEFT)) {
-      connector_factory_attributes->active_connector =
-        f_connector_new(d_new(connector), connector_factory_attributes->drawable, (double)mouse_x, (double)mouse_y);
+      if ((connector_factory_attributes->approve_drop) && (connector_factory_attributes->source_link))
+        connector_factory_attributes->active_connector =
+          f_connector_new(d_new(connector), connector_factory_attributes->drawable, (double)mouse_x, (double)mouse_y,
+            connector_factory_attributes->source_link);
       changed = d_true;
     }
   }
@@ -87,7 +105,8 @@ d_declare_method(connector_factory, delete)(struct s_object *self, struct s_conn
     d_delete(attributes->drawable);
   return NULL;
 }
-d_define_class(connector_factory) {d_hook_method_override(connector_factory, e_flag_public, eventable, event),
+d_define_class(connector_factory) {d_hook_method(connector_factory, e_flag_public, set_drop),
+                                   d_hook_method_override(connector_factory, e_flag_public, eventable, event),
                                    d_hook_method_override(connector_factory, e_flag_public, drawable, draw),
                                    d_hook_delete(connector_factory),
                                    d_hook_method_tail};

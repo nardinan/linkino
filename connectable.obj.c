@@ -43,9 +43,9 @@ d_define_method(connectable, add_connection_point)(struct s_object *self, double
 }
 d_define_method(connectable, get_selected_node)(struct s_object *self) {
   d_using(connectable);
-  struct s_connection_node *result = connectable_attributes->selected_node;
+  struct s_connection_node *result = connectable_attributes->active_node;
   /* the routine takes the latest selected node, then it resets the pointer to NULL in order to be ready for the next release */
-  connectable_attributes->selected_node = NULL;
+  connectable_attributes->active_node = NULL;
   d_cast_return(result);
 }
 d_define_method_override(connectable, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event) {
@@ -62,7 +62,7 @@ d_define_method_override(connectable, event)(struct s_object *self, struct s_obj
     if ((mouse_x >= (position_x + connection_node->offset_x)) && (mouse_x <= (position_x + connection_node->offset_x + connection_node->width)) &&
         (mouse_y >= (position_y + connection_node->offset_y)) && (mouse_y <= (position_y + connection_node->offset_y + connection_node->height))) {
       if ((current_event->type == SDL_MOUSEBUTTONDOWN) && (current_event->button.button == SDL_BUTTON_LEFT)) {
-        connectable_attributes->selected_node = connection_node;
+        connectable_attributes->active_node = connection_node;
       }
       connectable_attributes->rectangle_x[0] = connection_node->offset_x + position_x;
       connectable_attributes->rectangle_y[0] = connection_node->offset_y + position_y;

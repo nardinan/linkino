@@ -32,7 +32,7 @@ struct s_connection_node { d_list_node_head;
 d_declare_class(connectable) {
   struct s_attributes head;
   struct s_list list_connection_nodes;
-  struct s_connection_node *selected_node;
+  struct s_connection_node *active_node;
   int rectangle_x[d_connectable_rectangle_elements], rectangle_y[d_connectable_rectangle_elements];
   t_boolean draw_rectangle;
 } d_declare_class_tail(connectable);

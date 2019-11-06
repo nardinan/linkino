@@ -23,21 +23,23 @@ struct s_connector_attributes *p_connector_alloc(struct s_object *self) {
   f_drawable_new(self, (e_drawable_kind_single | e_drawable_kind_force_visibility));  /* inherit */
   return result;
 }
-struct s_object *f_connector_new(struct s_object *self, struct s_object *drawable, double source_x, double source_y) {
+struct s_object *f_connector_new(struct s_object *self, struct s_object *drawable, double source_x, double source_y, struct s_connection_node *link) {
   struct s_connector_attributes *connector_attributes = p_connector_alloc(self);
   if ((connector_attributes->drawable = d_retain(drawable))) {
     connector_attributes->separation = 0.5; /* by default is half of the line */
     d_assert(connector_attributes->starting_point = f_point_new(d_new(point), source_x, source_y));
   }
+  connector_attributes->source_link = link;
   return self;
 }
-d_define_method(connector, set_starting)(struct s_object *self, double starting_x, double starting_y) {
+d_define_method(connector, set_starting)(struct s_object *self, double starting_x, double starting_y, struct s_connection_node *link) {
   d_using(connector);
   if (connector_attributes->drawable)
     d_call(connector_attributes->starting_point, m_point_set, starting_x, starting_y);
+  connector_attributes->source_link = link;
   return self;
 }
-d_define_method(connector, set_destination)(struct s_object *self, double destination_x, double destination_y) {
+d_define_method(connector, set_destination)(struct s_object *self, double destination_x, double destination_y, struct s_connection_node *link) {
   d_using(connector);
   if (connector_attributes->drawable) {
     if (connector_attributes->destination_point)
@@ -45,6 +47,9 @@ d_define_method(connector, set_destination)(struct s_object *self, double destin
     else
       d_assert(connector_attributes->destination_point = f_point_new(d_new(point), destination_x, destination_y));
   }
+  connector_attributes->destination_link = link;
+  if ((connector_attributes->source_link) && (connector_attributes->destination_link))
+    printf("A new link from %s to %s has been created\n", connector_attributes->source_link->label, connector_attributes->destination_link->label);
   return self;
 }
 d_define_method_override(connector, draw)(struct s_object *self, struct s_object *environment) {
