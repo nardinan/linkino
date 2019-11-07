@@ -48,8 +48,6 @@ d_define_method(connector, set_destination)(struct s_object *self, double destin
       d_assert(connector_attributes->destination_point = f_point_new(d_new(point), destination_x, destination_y));
   }
   connector_attributes->destination_link = link;
-  if ((connector_attributes->source_link) && (connector_attributes->destination_link))
-    printf("A new link from %s to %s has been created\n", connector_attributes->source_link->label, connector_attributes->destination_link->label);
   return self;
 }
 d_define_method_override(connector, draw)(struct s_object *self, struct s_object *environment) {

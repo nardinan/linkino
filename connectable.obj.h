@@ -30,6 +30,7 @@ struct s_connection_node { d_list_node_head;
   double offset_x, offset_y, width, height, final_position_x, final_position_y;
   char label[d_string_buffer_size], unique_code[d_connectable_code_size];
   struct s_object *connectable;
+  t_boolean is_connected;
 } s_connection_node;
 d_declare_class(connectable) {
   struct s_attributes head;

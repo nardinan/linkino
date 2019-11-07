@@ -17,8 +17,8 @@
  */
 #include "connectable_factory.obj.h"
 void p_connectable_factory_left_click(struct s_object *self, void **parameters, size_t entries) {
-  struct s_object *connectable_factory = (struct s_object *) parameters[0];
-  struct s_connectable_factory_template *current_template = (struct s_connectable_factory_template *) parameters[1];
+  struct s_object *connectable_factory = (struct s_object *)parameters[0];
+  struct s_connectable_factory_template *current_template = (struct s_connectable_factory_template *)parameters[1];
   d_call(connectable_factory, m_connectable_factory_click_received, current_template);
 }
 struct s_connectable_factory_attributes *p_connectable_factory_alloc(struct s_object *self) {
@@ -38,7 +38,7 @@ struct s_object *f_connectable_factory_new(struct s_object *self, struct s_objec
   return self;
 }
 d_define_method(connectable_factory, add_connectable_template)(struct s_object *self, struct s_object *stream, const char *title, const char *description,
-  double *offsets_x, double *offsets_y, size_t connections) {
+                                                               double *offsets_x, double *offsets_y, size_t connections) {
   d_using(connectable_factory);
   if (connections <= d_connectable_factory_connections) {
     struct s_connectable_factory_template *current_template;
@@ -51,7 +51,7 @@ d_define_method(connectable_factory, add_connectable_template)(struct s_object *
       current_template->connections = connections;
       if ((current_template->uiable_button =
              d_call(connectable_factory_attributes->ui_factory, m_ui_factory_new_button, d_ui_factory_default_font_id, d_ui_factory_default_font_style,
-               current_template->title))) {
+                    current_template->title))) {
         d_call(current_template->uiable_button, m_emitter_embed_parameter, "clicked_left", self);
         d_call(current_template->uiable_button, m_emitter_embed_parameter, "clicked_left", current_template);
         d_call(current_template->uiable_button, m_emitter_embed_function, "clicked_left", p_connectable_factory_left_click);
@@ -91,16 +91,17 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
       char unique_code[d_connectable_code_size];
       /* we generate a random string that will be used to identify univocally the instance */
       for (unsigned int index = 0; index < (d_connectable_code_size - 1); ++index)
-        unique_code[index] = ((rand()%(((char)'Z')-((char)'A'))) + (char)'A');
+        unique_code[index] = ((rand() % (((char)'Z') - ((char)'A'))) + (char)'A');
       /* we drop the active template and we create a new connectable that we push into the array */
       struct s_object *connectable =
-        f_connectable_new(d_new(connectable), connectable_factory_attributes->active_template->stream, connectable_factory_attributes->environment, unique_code);
+        f_connectable_new(d_new(connectable), connectable_factory_attributes->active_template->stream, connectable_factory_attributes->environment,
+                          unique_code);
       d_call(connectable, m_drawable_set_position, connectable_factory_attributes->active_template->position_x,
-        connectable_factory_attributes->active_template->position_y);
+             connectable_factory_attributes->active_template->position_y);
       for (size_t index_offset = 0; index_offset < connectable_factory_attributes->active_template->connections; ++index_offset) {
         snprintf(buffer, d_string_buffer_size, "%c", (char)(((char)'A') + index_offset));
         d_call(connectable, m_connectable_add_connection_point, connectable_factory_attributes->active_template->offsets_x[index_offset],
-          connectable_factory_attributes->active_template->offsets_y[index_offset], buffer);
+               connectable_factory_attributes->active_template->offsets_y[index_offset], buffer);
       }
       d_call(connectable_factory_attributes->array_connectable_instances, m_array_push, connectable);
       connectable_factory_attributes->active_template = NULL;
@@ -131,14 +132,15 @@ d_define_method_override(connectable_factory, draw)(struct s_object *self, struc
   d_foreach(&(connectable_factory_attributes->list_templates), current_template, struct s_connectable_factory_template) {
     d_call(current_template->uiable_button, m_drawable_set_position, position_x, position_y);
     if ((d_call(current_template->uiable_button, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
-      camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
-      camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
+                camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
+                camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
       while (((intptr_t)d_call(current_template->uiable_button, m_drawable_draw, environment)) == d_drawable_return_continue);
+    position_y += (d_connectable_factory_button_height + 1);
   }
   d_array_foreach(connectable_factory_attributes->array_connectable_instances, current_connectable) {
     if ((d_call(current_connectable, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
-      camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
-      camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
+                camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
+                camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
       while (((intptr_t)d_call(current_connectable, m_drawable_draw, environment)) == d_drawable_return_continue);
   }
   /* we have something selected, so we need to keep the icon floating around following the mouse */
@@ -149,12 +151,12 @@ d_define_method_override(connectable_factory, draw)(struct s_object *self, struc
     d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_get_dimension, &icon_width, &icon_height);
     connectable_factory_attributes->active_template->position_x = mouse_x - (icon_width / 2.0);
     connectable_factory_attributes->active_template->position_y = mouse_y - (icon_height / 2.0);
-    d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_set_position,
-      connectable_factory_attributes->active_template->position_x, connectable_factory_attributes->active_template->position_y);
+    d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_set_position, connectable_factory_attributes->active_template->position_x,
+           connectable_factory_attributes->active_template->position_y);
     d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_set_maskA, d_connectable_factory_alpha);
     if ((d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_normalize_scale, camera_attributes->scene_reference_w,
-      camera_attributes->scene_reference_h, camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x,
-      camera_attributes->scene_center_y, camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
+                camera_attributes->scene_reference_h, camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x,
+                camera_attributes->scene_center_y, camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
       while (((intptr_t)d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_draw, environment)) == d_drawable_return_continue);
   }
   d_cast_return(d_drawable_return_last);

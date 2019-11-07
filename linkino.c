@@ -45,9 +45,23 @@ int linkino_loop_call(struct s_object *environment) {
         33.0,
         20.0,
         33.0
+      }, offsets_x_firewall[] = {
+        0.0,
+        42.0
+      }, offsets_y_firewall[] = {
+        22.0,
+        22.0
+      }, offsets_x_computer[] = {
+        85.0
+      }, offsets_y_computer[] = {
+        58.0
       };
-      d_call(director, m_director_add_node, "router", "ROUTER", "A router that privides the basic connectibility between nodes", offsets_x_router,
+      d_call(director, m_director_add_node, "router", "ROUTER", "A router that provides the basic infrastructure between nodes", offsets_x_router,
         offsets_y_router, (size_t)5);
+      d_call(director, m_director_add_node, "firewall", "FIREWALL", "A firewall that protect the peer 2 peer communication channels", offsets_x_firewall,
+        offsets_y_firewall, (size_t)2);
+      d_call(director, m_director_add_node, "computer", "PC STATION", "A basic PC required by every employee in the company", offsets_x_computer,
+        offsets_y_computer, (size_t)1);
       d_call(environment, m_environment_add_drawable, director, 5, e_environment_surface_primary);
       v_initialized = d_true;
     }

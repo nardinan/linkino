@@ -33,24 +33,22 @@ struct s_object *f_connector_factory_new(struct s_object *self, struct s_object 
 }
 d_define_method(connector_factory, set_drop)(struct s_object *self, t_boolean approve_drop, struct s_connection_node *link) {
   d_using(connector_factory);
-  connector_factory_attributes->approve_drop = approve_drop;
   if (approve_drop) {
-    if (connector_factory_attributes->active_connector) {
-      t_boolean refuse_drop = d_false;
-      /* the source and the destination cannot be the same */
-      if ((connector_factory_attributes->source_link) && (link)) {
-        if ((f_string_strcmp(connector_factory_attributes->source_link->unique_code, link->unique_code)) == 0) {
-          refuse_drop = d_true;
-        }
-      }
-      if (refuse_drop) {
-        connector_factory_attributes->approve_drop = d_false;
-        connector_factory_attributes->destination_link = NULL;
-      } else
+    /* we need to be sure that we can approve the drop. The source and the destination have to be different and the link should not be already
+     * linked to something else */
+    if (((!link) || (!link->is_connected)) && ((!link) || (!connector_factory_attributes->source_link) ||
+                                               (f_string_strcmp(connector_factory_attributes->source_link->unique_code, link->unique_code) != 0))) {
+      if (connector_factory_attributes->source_link)
         connector_factory_attributes->destination_link = link;
-
-    } else
-      connector_factory_attributes->source_link = link;
+      else
+        connector_factory_attributes->source_link = link;
+      connector_factory_attributes->approve_drop = d_true;
+    } else {
+      connector_factory_attributes->approve_drop = d_false;
+      connector_factory_attributes->destination_link = NULL;
+    }
+  } else {
+    connector_factory_attributes->approve_drop = d_false;
   }
   return self;
 }
@@ -72,8 +70,10 @@ d_define_method_override(connector_factory, event)(struct s_object *self, struct
         if ((connector_factory_attributes->approve_drop) && (connector_factory_attributes->destination_link)) {
           if (current_event->button.button == SDL_BUTTON_LEFT) {
             d_call(connector_factory_attributes->active_connector, m_connector_set_destination, connector_factory_attributes->destination_link->final_position_x,
-              connector_factory_attributes->destination_link->final_position_y, connector_factory_attributes->source_link);
+              connector_factory_attributes->destination_link->final_position_y, connector_factory_attributes->destination_link);
             d_call(connector_factory_attributes->array_of_connectors, m_array_push, connector_factory_attributes->active_connector);
+            connector_factory_attributes->source_link->is_connected = d_true;
+            connector_factory_attributes->destination_link->is_connected = d_true;
           }
           d_delete(connector_factory_attributes->active_connector);
           connector_factory_attributes->active_connector = NULL;
