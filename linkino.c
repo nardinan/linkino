@@ -76,7 +76,6 @@ int main(int argc, char *argv[]) {
   struct s_object *stream_configuration;
   struct s_object *json_configuration;
   double scale_resolution_x, scale_resolution_y;
-  unsigned int index;
   d_pool_init;
   d_pool_begin("main context")
   {

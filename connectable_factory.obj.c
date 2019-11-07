@@ -88,9 +88,13 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
   t_boolean changed = d_false;
   if (connectable_factory_attributes->active_template) {
     if ((current_event->type == SDL_MOUSEBUTTONDOWN) && (current_event->button.button == SDL_BUTTON_LEFT)) {
+      char unique_code[d_connectable_code_size];
+      /* we generate a random string that will be used to identify univocally the instance */
+      for (unsigned int index = 0; index < (d_connectable_code_size - 1); ++index)
+        unique_code[index] = ((rand()%(((char)'Z')-((char)'A'))) + (char)'A');
       /* we drop the active template and we create a new connectable that we push into the array */
       struct s_object *connectable =
-        f_connectable_new(d_new(connectable), connectable_factory_attributes->active_template->stream, connectable_factory_attributes->environment);
+        f_connectable_new(d_new(connectable), connectable_factory_attributes->active_template->stream, connectable_factory_attributes->environment, unique_code);
       d_call(connectable, m_drawable_set_position, connectable_factory_attributes->active_template->position_x,
         connectable_factory_attributes->active_template->position_y);
       for (size_t index_offset = 0; index_offset < connectable_factory_attributes->active_template->connections; ++index_offset) {

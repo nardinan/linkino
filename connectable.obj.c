@@ -22,9 +22,10 @@ struct s_connectable_attributes *p_connectable_alloc(struct s_object *self, stru
   f_eventable_new(self);                    /* inherit */
   return result;
 }
-extern struct s_object *f_connectable_new(struct s_object *self, struct s_object *stream, struct s_object *environment) {
+extern struct s_object *f_connectable_new(struct s_object *self, struct s_object *stream, struct s_object *environment, const char *unique_code) {
   struct s_connectable_attributes *connectable_attributes = p_connectable_alloc(self, stream, environment);
   memset(&(connectable_attributes->list_connection_nodes), 0, sizeof(struct s_list));
+  strncpy(connectable_attributes->unique_code, unique_code, d_connectable_code_size);
   return self;
 }
 d_define_method(connectable, add_connection_point)(struct s_object *self, double offset_x, double offset_y, const char *label) {
@@ -35,7 +36,9 @@ d_define_method(connectable, add_connection_point)(struct s_object *self, double
     connectable_link->offset_y = offset_y;
     connectable_link->width = d_connectable_width;
     connectable_link->height = d_connectable_height;
+    connectable_link->connectable = self; /* a reentrant point to access the object through the link */
     strncpy(connectable_link->label, label, d_string_buffer_size);
+    strncpy(connectable_link->unique_code, connectable_attributes->unique_code, d_connectable_code_size);
     f_list_append(&(connectable_attributes->list_connection_nodes), (struct s_list_node *)connectable_link, e_list_insert_tail);
   } else
     d_die(d_error_malloc);
@@ -59,6 +62,9 @@ d_define_method_override(connectable, event)(struct s_object *self, struct s_obj
   d_call(&(drawable_attributes->point_destination), m_point_get, &position_x, &position_y);
   connectable_attributes->draw_rectangle = d_false;
   d_foreach(&(connectable_attributes->list_connection_nodes), connection_node, struct s_connection_node) {
+    /* update the position of the nodes in respect of the final position of the connectable */
+    connection_node->final_position_x = (connection_node->offset_x + position_x + (connection_node->width / 2.0));
+    connection_node->final_position_y = (connection_node->offset_y + position_y + (connection_node->height / 2.0));
     if ((mouse_x >= (position_x + connection_node->offset_x)) && (mouse_x <= (position_x + connection_node->offset_x + connection_node->width)) &&
         (mouse_y >= (position_y + connection_node->offset_y)) && (mouse_y <= (position_y + connection_node->offset_y + connection_node->height))) {
       if ((current_event->type == SDL_MOUSEBUTTONDOWN) && (current_event->button.button == SDL_BUTTON_LEFT)) {
@@ -74,7 +80,6 @@ d_define_method_override(connectable, event)(struct s_object *self, struct s_obj
       connectable_attributes->rectangle_y[3] = connection_node->offset_y + position_y;
       connectable_attributes->draw_rectangle = d_true;
       changed = d_true;
-      break;
     }
   }
   d_cast_return(((changed) ? e_eventable_status_captured : e_eventable_status_ignored));
