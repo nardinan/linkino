@@ -58,7 +58,7 @@ d_define_method_override(connectable, event)(struct s_object *self, struct s_obj
   t_boolean changed = d_false;
   double position_x, position_y;
   int mouse_x, mouse_y;
-  SDL_GetMouseState(&mouse_x, &mouse_y);
+  d_call(environment, m_environment_get_mouse_normalized, "draw_camera", &mouse_x, &mouse_y);
   d_call(&(drawable_attributes->point_destination), m_point_get, &position_x, &position_y);
   connectable_attributes->draw_rectangle = d_false;
   d_foreach(&(connectable_attributes->list_connection_nodes), connection_node, struct s_connection_node) {
@@ -78,6 +78,7 @@ d_define_method_override(connectable, event)(struct s_object *self, struct s_obj
       connectable_attributes->rectangle_y[2] = connection_node->offset_y + position_y + connection_node->height;
       connectable_attributes->rectangle_x[3] = connection_node->offset_x + position_x + connection_node->width;
       connectable_attributes->rectangle_y[3] = connection_node->offset_y + position_y;
+      connectable_attributes->normalized = d_false;
       connectable_attributes->draw_rectangle = d_true;
       changed = d_true;
     }
@@ -87,10 +88,28 @@ d_define_method_override(connectable, event)(struct s_object *self, struct s_obj
 d_define_method_override(connectable, draw)(struct s_object *self, struct s_object *environment) {
   d_using(connectable);
   struct s_environment_attributes *environment_attributes = d_cast(environment, environment);
+  struct s_camera_attributes *camera_attributes;
   int result = (intptr_t)d_call_owner(self, bitmap, m_drawable_draw, environment); /* recall the father's draw method */
-  if (connectable_attributes->draw_rectangle) {
-    f_primitive_fill_polygon(environment_attributes->renderer, connectable_attributes->rectangle_x, connectable_attributes->rectangle_y,
-      d_connectable_rectangle_elements, d_connectable_rectangle_R, d_connectable_rectangle_G, d_connectable_rectangle_B, d_connectable_rectangle_A);
+  if ((camera_attributes = d_cast(environment_attributes->current_camera, camera))) {
+    if (connectable_attributes->draw_rectangle) {
+      if (!connectable_attributes->normalized) {
+        /* we need to normalize the values stored into the rectangle x and y coordinates, accordingly to the camera */
+        for (unsigned int index = 0; index < d_connectable_rectangle_elements; ++index) {
+          connectable_attributes->rectangle_x[index] =
+            ((double)connectable_attributes->rectangle_x[index] * camera_attributes->screen_w) / camera_attributes->scene_reference_w;
+          connectable_attributes->rectangle_y[index] =
+            ((double)connectable_attributes->rectangle_y[index] * camera_attributes->screen_h) / camera_attributes->scene_reference_h;
+          connectable_attributes->rectangle_x[index] = ((double)connectable_attributes->rectangle_x[index] + camera_attributes->scene_offset_x);
+          connectable_attributes->rectangle_y[index] = ((double)connectable_attributes->rectangle_y[index] + camera_attributes->scene_offset_y);
+          connectable_attributes->rectangle_x[index] = ((double)connectable_attributes->rectangle_x[index] * camera_attributes->scene_zoom);
+          connectable_attributes->rectangle_y[index] = ((double)connectable_attributes->rectangle_y[index] * camera_attributes->scene_zoom);
+        }
+        connectable_attributes->normalized = d_true;
+      }
+      f_primitive_fill_polygon(environment_attributes->renderer, connectable_attributes->rectangle_x, connectable_attributes->rectangle_y,
+                               d_connectable_rectangle_elements, d_connectable_rectangle_R, d_connectable_rectangle_G, d_connectable_rectangle_B,
+                               d_connectable_rectangle_A);
+    }
   }
   d_cast_return(result);
 }

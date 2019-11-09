@@ -147,7 +147,7 @@ d_define_method_override(connectable_factory, draw)(struct s_object *self, struc
   if (connectable_factory_attributes->active_template) {
     double icon_width, icon_height, icon_position_x, icon_position_y;
     int mouse_x, mouse_y;
-    SDL_GetMouseState(&mouse_x, &mouse_y);
+    d_call(environment, m_environment_get_mouse_normalized, "draw_camera", &mouse_x, &mouse_y);
     d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_get_dimension, &icon_width, &icon_height);
     connectable_factory_attributes->active_template->position_x = mouse_x - (icon_width / 2.0);
     connectable_factory_attributes->active_template->position_y = mouse_y - (icon_height / 2.0);

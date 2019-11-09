@@ -57,7 +57,7 @@ d_define_method_override(connector_factory, event)(struct s_object *self, struct
   t_boolean changed = d_false;
   if (connector_factory_attributes->drawable) {
     int mouse_x, mouse_y;
-    SDL_GetMouseState(&mouse_x, &mouse_y);
+    d_call(environment, m_environment_get_mouse_normalized, "draw_camera", &mouse_x, &mouse_y);
     if (connector_factory_attributes->active_connector) {
       /* we might be trigger by two different events:
        * - left click (drop the line where we are, store it into the array of connector and removes the active connector)
@@ -75,6 +75,11 @@ d_define_method_override(connector_factory, event)(struct s_object *self, struct
             connector_factory_attributes->source_link->is_connected = d_true;
             connector_factory_attributes->destination_link->is_connected = d_true;
           }
+          d_delete(connector_factory_attributes->active_connector);
+          connector_factory_attributes->active_connector = NULL;
+          connector_factory_attributes->source_link = NULL;
+          connector_factory_attributes->destination_link = NULL;
+        } else if (current_event->button.button == SDL_BUTTON_RIGHT) {
           d_delete(connector_factory_attributes->active_connector);
           connector_factory_attributes->active_connector = NULL;
           connector_factory_attributes->source_link = NULL;

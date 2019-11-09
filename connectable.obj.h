@@ -37,7 +37,7 @@ d_declare_class(connectable) {
   struct s_list list_connection_nodes;
   struct s_connection_node *active_node;
   int rectangle_x[d_connectable_rectangle_elements], rectangle_y[d_connectable_rectangle_elements];
-  t_boolean draw_rectangle;
+  t_boolean draw_rectangle, normalized;
   char unique_code[d_connectable_code_size];
 } d_declare_class_tail(connectable);
 struct s_connectable_attributes *p_connectable_alloc(struct s_object *self, struct s_object *stream, struct s_object *environment);

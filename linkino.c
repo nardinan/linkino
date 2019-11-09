@@ -90,6 +90,7 @@ int main(int argc, char *argv[]) {
   struct s_object *stream_configuration;
   struct s_object *json_configuration;
   double scale_resolution_x, scale_resolution_y;
+  struct s_environment_attributes *environment_attributes;
   d_pool_init;
   d_pool_begin("main context")
   {
@@ -115,14 +116,16 @@ int main(int argc, char *argv[]) {
       }
       scale_resolution_x = (v_linkino_width_reference * v_linkino_scale_factor);
       scale_resolution_y = (v_linkino_height_reference * v_linkino_scale_factor);
-      environment = f_environment_new_fullscreen(d_new(environment), v_linkino_width_window, v_linkino_height_window, v_linkino_fullscreen);
+      environment = f_environment_new_fullscreen(d_new(environment), v_linkino_width_window, v_linkino_height_window, d_true);
       d_call(environment, m_environment_set_methods, &linkino_load_call_start, &linkino_loop_call, &linkino_quit_call);
+      environment_attributes = d_cast(environment, environment);
       if ((default_draw_camera =
-             f_camera_new(d_new(camera), 0.0, 0.0, v_linkino_width_window, v_linkino_height_window, e_environment_surface_primary, environment))) {
+             f_camera_new(d_new(camera), 0.0, 0.0, environment_attributes->current_w, environment_attributes->current_h, e_environment_surface_primary,
+               environment))) {
         d_call(default_draw_camera, m_camera_set_reference, (double)scale_resolution_x, (double)scale_resolution_y);
         d_call(default_draw_camera, m_camera_set_center, (double)0.0, (double)0.0);
         if ((default_ui_camera =
-               f_camera_new(d_new(camera), 0.0, 0.0, v_linkino_width_window, v_linkino_height_window, e_environment_surface_ui, environment))) {
+               f_camera_new(d_new(camera), 0.0, 0.0, environment_attributes->current_w, environment_attributes->current_h, e_environment_surface_ui, environment))) {
           d_call(default_ui_camera, m_camera_set_reference, (double)scale_resolution_x, (double)scale_resolution_y);
           d_call(default_ui_camera, m_camera_set_center, (double)0.0, (double)0.0);
           d_call(environment, m_environment_add_camera, label_camera, default_draw_camera);
