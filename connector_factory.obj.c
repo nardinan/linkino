@@ -31,7 +31,7 @@ struct s_object *f_connector_factory_new(struct s_object *self, struct s_object 
   }
   return self;
 }
-d_define_method(connector_factory, set_drop)(struct s_object *self, t_boolean approve_drop, struct s_connection_node *link) {
+d_define_method(connector_factory, set_drop)(struct s_object *self, t_boolean approve_drop, struct s_connectable_link *link) {
   d_using(connector_factory);
   if (approve_drop) {
     /* we need to be sure that we can approve the drop. The source and the destination have to be different and the link should not be already
@@ -52,6 +52,32 @@ d_define_method(connector_factory, set_drop)(struct s_object *self, t_boolean ap
   }
   return self;
 }
+d_define_method(connector_factory, get_connector_with_source)(struct s_object *self, struct s_connectable_link *link) {
+  d_using(connector_factory);
+  struct s_object *current_connector, *result = NULL;
+  if (connector_factory_attributes->array_of_connectors)
+    d_array_foreach(connector_factory_attributes->array_of_connectors, current_connector) {
+      struct s_connector_attributes *connector_attributes = d_cast(current_connector, connector);
+      if (connector_attributes->source_link == link) {
+        result = current_connector;
+        break;
+      }
+    }
+  return result;
+}
+d_define_method(connector_factory, get_connector_with_destination)(struct s_object *self, struct s_connectable_link *link) {
+  d_using(connector_factory);
+  struct s_object *current_connector, *result = NULL;
+  if (connector_factory_attributes->array_of_connectors)
+    d_array_foreach(connector_factory_attributes->array_of_connectors, current_connector) {
+      struct s_connector_attributes *connector_attributes = d_cast(current_connector, connector);
+      if (connector_attributes->destination_link == link) {
+        result = current_connector;
+        break;
+      }
+    } 
+  return result;
+}
 d_define_method_override(connector_factory, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event) {
   d_using(connector_factory);
   t_boolean changed = d_false;
@@ -67,6 +93,7 @@ d_define_method_override(connector_factory, event)(struct s_object *self, struct
       d_call(connector_factory_attributes->active_connector, m_connector_set_destination, (double)mouse_x, (double)mouse_y,
         connector_factory_attributes->destination_link);
       if (current_event->type == SDL_MOUSEBUTTONDOWN) {
+        t_boolean reset_entry = d_false;
         if ((connector_factory_attributes->approve_drop) && (connector_factory_attributes->destination_link)) {
           if (current_event->button.button == SDL_BUTTON_LEFT) {
             d_call(connector_factory_attributes->active_connector, m_connector_set_destination, connector_factory_attributes->destination_link->final_position_x,
@@ -75,23 +102,24 @@ d_define_method_override(connector_factory, event)(struct s_object *self, struct
             connector_factory_attributes->source_link->is_connected = d_true;
             connector_factory_attributes->destination_link->is_connected = d_true;
           }
+          reset_entry = d_true;
+        } else if (current_event->button.button == SDL_BUTTON_RIGHT)
+          reset_entry = d_true;
+        if (reset_entry) {
           d_delete(connector_factory_attributes->active_connector);
           connector_factory_attributes->active_connector = NULL;
           connector_factory_attributes->source_link = NULL;
           connector_factory_attributes->destination_link = NULL;
-        } else if (current_event->button.button == SDL_BUTTON_RIGHT) {
-          d_delete(connector_factory_attributes->active_connector);
-          connector_factory_attributes->active_connector = NULL;
-          connector_factory_attributes->source_link = NULL;
-          connector_factory_attributes->destination_link = NULL;
+          connector_factory_attributes->approve_drop = d_false;
         }
       }
       changed = d_true;
     } else if ((current_event->type == SDL_MOUSEBUTTONDOWN) && (current_event->button.button == SDL_BUTTON_LEFT)) {
-      if ((connector_factory_attributes->approve_drop) && (connector_factory_attributes->source_link))
+      if ((connector_factory_attributes->approve_drop) && (connector_factory_attributes->source_link)) {
         connector_factory_attributes->active_connector =
           f_connector_new(d_new(connector), connector_factory_attributes->drawable, connector_factory_attributes->source_link->final_position_x,
-            connector_factory_attributes->source_link->final_position_y, connector_factory_attributes->source_link);
+              connector_factory_attributes->source_link->final_position_y, connector_factory_attributes->source_link);
+      }
       changed = d_true;
     }
   }
@@ -101,18 +129,19 @@ d_define_method_override(connector_factory, draw)(struct s_object *self, struct 
   d_using(connector_factory);
   struct s_environment_attributes *environment_attributes = d_cast(environment, environment);
   struct s_camera_attributes *camera_attributes = d_cast(environment_attributes->current_camera, camera);
+  struct s_object *label;
   if (connector_factory_attributes->drawable) {
     struct s_object *current_connector;
     if (connector_factory_attributes->active_connector) {
       if ((d_call(connector_factory_attributes->active_connector, m_drawable_normalize_scale, camera_attributes->scene_reference_w,
-        camera_attributes->scene_reference_h, camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x,
-        camera_attributes->scene_center_y, camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
+              camera_attributes->scene_reference_h, camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x,
+              camera_attributes->scene_center_y, camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
         while (((intptr_t)d_call(connector_factory_attributes->active_connector, m_drawable_draw, environment)) == d_drawable_return_continue);
     }
     d_array_foreach(connector_factory_attributes->array_of_connectors, current_connector) {
       if ((d_call(current_connector, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
-        camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
-        camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
+              camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
+              camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
         while (((intptr_t)d_call(current_connector, m_drawable_draw, environment)) == d_drawable_return_continue);
     }
   }
@@ -126,6 +155,8 @@ d_declare_method(connector_factory, delete)(struct s_object *self, struct s_conn
   return NULL;
 }
 d_define_class(connector_factory) {d_hook_method(connector_factory, e_flag_public, set_drop),
+                                   d_hook_method(connector_factory, e_flag_public, get_connector_with_source),
+                                   d_hook_method(connector_factory, e_flag_public, get_connector_with_destination),
                                    d_hook_method_override(connector_factory, e_flag_public, eventable, event),
                                    d_hook_method_override(connector_factory, e_flag_public, drawable, draw),
                                    d_hook_delete(connector_factory),

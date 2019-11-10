@@ -25,11 +25,13 @@ d_declare_class(connector_factory) {
   struct s_object *array_of_connectors;
   struct s_object *drawable;
   t_boolean approve_drop;
-  struct s_connection_node *source_link, *destination_link;
+  struct s_connectable_link *source_link, *destination_link;
 } d_declare_class_tail(connector_factory);
 struct s_connector_factory_attributes *p_connector_factory_alloc(struct s_object *self);
 extern struct s_object *f_connector_factory_new(struct s_object *self, struct s_object *drawable);
-d_declare_method(connector_factory, set_drop)(struct s_object *self, t_boolean approve_drop, struct s_connection_node *link);
+d_declare_method(connector_factory, set_drop)(struct s_object *self, t_boolean approve_drop, struct s_connectable_link *link);
+d_declare_method(connector_factory, get_connector_with_source)(struct s_object *self, struct s_connectable_link *link);
+d_declare_method(connector_factory, get_connector_with_destination)(struct s_object *self, struct s_connectable_link *link);
 d_declare_method(connector_factory, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event);
 d_declare_method(connector_factory, draw)(struct s_object *self, struct s_object *environment);
 d_declare_method(connector_factory, delete)(struct s_object *self, struct s_connector_factory_attributes *attributes);

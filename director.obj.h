@@ -19,6 +19,8 @@
 #define linkino_director_h
 #include "connector_factory.obj.h"
 #include "connectable_factory.obj.h"
+#include "packet.obj.h"
+#define d_director_move_step 0.01
 d_declare_class(director) {
   struct s_attributes head;
   struct s_object *environment;
@@ -26,11 +28,12 @@ d_declare_class(director) {
   struct s_object *media_factory;
   struct s_object *connectable_factory;
   struct s_object *connector_factory;
+  struct s_object *array_packets;
 } d_declare_class_tail(director);
 struct s_director_attributes *p_director_alloc(struct s_object *self);
 extern struct s_object *f_director_new(struct s_object *self, struct s_object *environment, struct s_object *ui_factory, struct s_object *media_factory);
 d_declare_method(director, add_node)(struct s_object *self, const char *stream_icon_label, const char *title, const char *description, double *offsets_x,
-  double *offsets_y, size_t connections);
+  double *offsets_y, size_t connections, t_boolean generate_traffic);
 d_declare_method(director, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event);
 d_declare_method(director, draw)(struct s_object *self, struct s_object *environment);
 d_declare_method(director, delete)(struct s_object *self, struct s_director_attributes *attributes);

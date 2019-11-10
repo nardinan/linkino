@@ -19,4 +19,4 @@
 /* default values, replaced by the values into the configuration file */
 double v_linkino_width_window = 1280, v_linkino_height_window = 720, v_linkino_width_reference = 1280,
   v_linkino_height_reference = 720, v_linkino_scale_factor = 1.0, v_linkino_effects_volume = 1.0, v_linkino_music_volume = 1.0;
-t_boolean v_linkino_fullscreen = d_false;
+t_boolean v_linkino_fullscreen = d_true;

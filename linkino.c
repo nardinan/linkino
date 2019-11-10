@@ -52,16 +52,16 @@ int linkino_loop_call(struct s_object *environment) {
         22.0,
         22.0
       }, offsets_x_computer[] = {
-        85.0
+        84.0
       }, offsets_y_computer[] = {
-        58.0
+        59.0
       };
       d_call(director, m_director_add_node, "router", "ROUTER", "A router that provides the basic infrastructure between nodes", offsets_x_router,
-        offsets_y_router, (size_t)5);
+        offsets_y_router, (size_t)5, d_false);
       d_call(director, m_director_add_node, "firewall", "FIREWALL", "A firewall that protect the peer 2 peer communication channels", offsets_x_firewall,
-        offsets_y_firewall, (size_t)2);
+        offsets_y_firewall, (size_t)2, d_false);
       d_call(director, m_director_add_node, "computer", "PC STATION", "A basic PC required by every employee in the company", offsets_x_computer,
-        offsets_y_computer, (size_t)1);
+        offsets_y_computer, (size_t)1, d_true);
       d_call(environment, m_environment_add_drawable, director, 5, e_environment_surface_primary);
       v_initialized = d_true;
     }
@@ -116,7 +116,7 @@ int main(int argc, char *argv[]) {
       }
       scale_resolution_x = (v_linkino_width_reference * v_linkino_scale_factor);
       scale_resolution_y = (v_linkino_height_reference * v_linkino_scale_factor);
-      environment = f_environment_new_fullscreen(d_new(environment), v_linkino_width_window, v_linkino_height_window, d_true);
+      environment = f_environment_new_fullscreen(d_new(environment), v_linkino_width_window, v_linkino_height_window, v_linkino_fullscreen);
       d_call(environment, m_environment_set_methods, &linkino_load_call_start, &linkino_loop_call, &linkino_quit_call);
       environment_attributes = d_cast(environment, environment);
       if ((default_draw_camera =

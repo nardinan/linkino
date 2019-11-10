@@ -28,10 +28,15 @@ extern struct s_object *f_connectable_new(struct s_object *self, struct s_object
   strncpy(connectable_attributes->unique_code, unique_code, d_connectable_code_size);
   return self;
 }
+d_define_method(connectable, set_generate_traffic)(struct s_object *self, t_boolean generate_traffic) {
+  d_using(connectable);
+  connectable_attributes->generate_traffic = generate_traffic;
+  return self;
+}
 d_define_method(connectable, add_connection_point)(struct s_object *self, double offset_x, double offset_y, const char *label) {
   d_using(connectable);
-  struct s_connection_node *connectable_link;
-  if ((connectable_link = (struct s_connection_node *) d_malloc(sizeof(struct s_connection_node)))) {
+  struct s_connectable_link *connectable_link;
+  if ((connectable_link = (struct s_connectable_link *) d_malloc(sizeof(struct s_connectable_link)))) {
     connectable_link->offset_x = offset_x;
     connectable_link->offset_y = offset_y;
     connectable_link->width = d_connectable_width;
@@ -46,14 +51,33 @@ d_define_method(connectable, add_connection_point)(struct s_object *self, double
 }
 d_define_method(connectable, get_selected_node)(struct s_object *self) {
   d_using(connectable);
-  struct s_connection_node *result = connectable_attributes->active_node;
+  struct s_connectable_link *result = connectable_attributes->active_node;
   /* the routine takes the latest selected node, then it resets the pointer to NULL in order to be ready for the next release */
   connectable_attributes->active_node = NULL;
   d_cast_return(result);
 }
+d_define_method(connectable, is_traffic_generation_required)(struct s_object *self) {
+  d_using(connectable);
+  struct s_connectable_link *result = NULL;
+  if (connectable_attributes->generate_traffic) {
+    time_t current_timestamp = time(NULL);
+    if (current_timestamp >= connectable_attributes->next_token_generation) {
+      size_t final_link_steps = (rand() % (size_t)connectable_attributes->list_connection_nodes.fill);
+      result = (struct s_connectable_link *)connectable_attributes->list_connection_nodes.head;
+      while ((((struct s_list_node *)result)->next) && (final_link_steps > 0)) {
+        result = (struct s_connectable_link *)(((struct s_list_node *)result)->next);
+        --final_link_steps;
+      }
+      /* we need to select, randomly, one of the connectables of the node */
+      connectable_attributes->next_token_generation = current_timestamp + 
+        (rand() % (d_connectable_max_seconds_between_generation - d_connectable_min_seconds_between_generation)) + d_connectable_min_seconds_between_generation;
+    }
+  }
+  d_cast_return(result);
+}
 d_define_method_override(connectable, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event) {
   d_using(connectable);
-  struct s_connection_node *connection_node;
+  struct s_connectable_link *connection_node;
   struct s_drawable_attributes *drawable_attributes = d_cast(self, drawable);
   t_boolean changed = d_false;
   double position_x, position_y;
@@ -61,7 +85,7 @@ d_define_method_override(connectable, event)(struct s_object *self, struct s_obj
   d_call(environment, m_environment_get_mouse_normalized, "draw_camera", &mouse_x, &mouse_y);
   d_call(&(drawable_attributes->point_destination), m_point_get, &position_x, &position_y);
   connectable_attributes->draw_rectangle = d_false;
-  d_foreach(&(connectable_attributes->list_connection_nodes), connection_node, struct s_connection_node) {
+  d_foreach(&(connectable_attributes->list_connection_nodes), connection_node, struct s_connectable_link) {
     /* update the position of the nodes in respect of the final position of the connectable */
     connection_node->final_position_x = (connection_node->offset_x + position_x + (connection_node->width / 2.0));
     connection_node->final_position_y = (connection_node->offset_y + position_y + (connection_node->height / 2.0));
@@ -114,14 +138,16 @@ d_define_method_override(connectable, draw)(struct s_object *self, struct s_obje
   d_cast_return(result);
 }
 d_define_method(connectable, delete)(struct s_object *self, struct s_connectable_attributes *attributes) {
-  struct s_connection_node *current_element;
-  while ((current_element = (struct s_connection_node *)attributes->list_connection_nodes.head)) {
+  struct s_connectable_link *current_element;
+  while ((current_element = (struct s_connectable_link *)attributes->list_connection_nodes.head)) {
     f_list_delete(&(attributes->list_connection_nodes), (struct s_list_node *)current_element);
     d_free(current_element);
   }
   return NULL;
 }
-d_define_class(connectable) {d_hook_method(connectable, e_flag_public, add_connection_point),
+d_define_class(connectable) {d_hook_method(connectable, e_flag_public, set_generate_traffic),
+                             d_hook_method(connectable, e_flag_public, add_connection_point),
+                             d_hook_method(connectable, e_flag_public, is_traffic_generation_required),
                              d_hook_method(connectable, e_flag_public, get_selected_node),
                              d_hook_method_override(connectable, e_flag_public, eventable, event),
                              d_hook_method_override(connectable, e_flag_public, drawable, draw),

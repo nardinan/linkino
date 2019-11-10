@@ -29,12 +29,13 @@ typedef struct s_connectable_factory_template { d_list_node_head;
   char description[d_string_buffer_size], title[d_string_buffer_size];
   size_t connections;
   double offsets_x[d_connectable_factory_connections], offsets_y[d_connectable_factory_connections], position_x, position_y;
+  t_boolean generate_traffic;
 } s_connectable_factory_template;
 d_declare_class(connectable_factory) {
   struct s_attributes head;
   struct s_list list_templates;
   struct s_connectable_factory_template *active_template;
-  struct s_connection_node *active_node;
+  struct s_connectable_link *active_node;
   struct s_object *array_connectable_instances;
   struct s_object *environment;
   struct s_object *ui_factory;
@@ -42,8 +43,9 @@ d_declare_class(connectable_factory) {
 struct s_connectable_factory_attributes *p_connectable_factory_alloc(struct s_object *self);
 extern struct s_object *f_connectable_factory_new(struct s_object *self, struct s_object *ui_factory, struct s_object *environment);
 d_declare_method(connectable_factory, add_connectable_template)(struct s_object *self, struct s_object *stream, const char *title, const char *description,
-  double *offsets_x, double *offsets_y, size_t connections);
+  double *offsets_x, double *offsets_y, size_t connections, t_boolean generate_traffic);
 d_declare_method(connectable_factory, get_selected_node)(struct s_object *self);
+d_declare_method(connectable_factory, is_traffic_generation_required)(struct s_object *self);
 d_declare_method(connectable_factory, click_received)(struct s_object *self, struct s_connectable_factory_template *template);
 d_declare_method(connectable_factory, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event);
 d_declare_method(connectable_factory, draw)(struct s_object *self, struct s_object *environment);

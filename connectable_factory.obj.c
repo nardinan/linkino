@@ -38,7 +38,7 @@ struct s_object *f_connectable_factory_new(struct s_object *self, struct s_objec
   return self;
 }
 d_define_method(connectable_factory, add_connectable_template)(struct s_object *self, struct s_object *stream, const char *title, const char *description,
-                                                               double *offsets_x, double *offsets_y, size_t connections) {
+    double *offsets_x, double *offsets_y, size_t connections, t_boolean generate_traffic) {
   d_using(connectable_factory);
   if (connections <= d_connectable_factory_connections) {
     struct s_connectable_factory_template *current_template;
@@ -48,6 +48,7 @@ d_define_method(connectable_factory, add_connectable_template)(struct s_object *
       strncpy(current_template->description, description, d_string_buffer_size);
       memcpy(current_template->offsets_x, offsets_x, (sizeof(double) * connections));
       memcpy(current_template->offsets_y, offsets_y, (sizeof(double) * connections));
+      current_template->generate_traffic = generate_traffic;
       current_template->connections = connections;
       if ((current_template->uiable_button =
              d_call(connectable_factory_attributes->ui_factory, m_ui_factory_new_button, d_ui_factory_default_font_id, d_ui_factory_default_font_style,
@@ -69,9 +70,20 @@ d_define_method(connectable_factory, add_connectable_template)(struct s_object *
 }
 d_define_method(connectable_factory, get_selected_node)(struct s_object *self) {
   d_using(connectable_factory);
-  struct s_connection_node *result = connectable_factory_attributes->active_node;
+  struct s_connectable_link *result = connectable_factory_attributes->active_node;
   /* the routine takes the latest selected node, then it resets the pointer to NULL in order to be ready for the next release */
   connectable_factory_attributes->active_node = NULL;
+  d_cast_return(result);
+}
+d_define_method(connectable_factory, is_traffic_generation_required)(struct s_object *self) {
+  d_using(connectable_factory);
+  struct s_object *current_connectable;
+  struct s_connectable_link *result = NULL;
+  d_array_foreach(connectable_factory_attributes->array_connectable_instances, current_connectable) {
+    if ((result = (struct s_connectable_link *)d_call(current_connectable, m_connectable_is_traffic_generation_required, NULL))) {
+      break;
+    }
+  }
   d_cast_return(result);
 }
 d_define_method(connectable_factory, click_received)(struct s_object *self, struct s_connectable_factory_template *template) {
@@ -94,8 +106,9 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
         unique_code[index] = ((rand() % (((char)'Z') - ((char)'A'))) + (char)'A');
       /* we drop the active template and we create a new connectable that we push into the array */
       struct s_object *connectable =
-        f_connectable_new(d_new(connectable), connectable_factory_attributes->active_template->stream, connectable_factory_attributes->environment,
-                          unique_code);
+        f_connectable_new(d_new(connectable), connectable_factory_attributes->active_template->stream, 
+            connectable_factory_attributes->environment, unique_code);
+      d_call(connectable, m_connectable_set_generate_traffic, connectable_factory_attributes->active_template->generate_traffic);
       d_call(connectable, m_drawable_set_position, connectable_factory_attributes->active_template->position_x,
              connectable_factory_attributes->active_template->position_y);
       for (size_t index_offset = 0; index_offset < connectable_factory_attributes->active_template->connections; ++index_offset) {
@@ -110,7 +123,7 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
   } else {
     d_array_foreach(connectable_factory_attributes->array_connectable_instances, current_connectable)
       if (((intptr_t)d_call(current_connectable, m_eventable_event, environment, current_event)) == e_eventable_status_captured) {
-        struct s_connection_node *connection_node;
+        struct s_connectable_link *connection_node;
         if ((connection_node = d_call(current_connectable, m_connectable_get_selected_node, NULL)))
           connectable_factory_attributes->active_node = connection_node;
       }
@@ -145,7 +158,7 @@ d_define_method_override(connectable_factory, draw)(struct s_object *self, struc
   }
   /* we have something selected, so we need to keep the icon floating around following the mouse */
   if (connectable_factory_attributes->active_template) {
-    double icon_width, icon_height, icon_position_x, icon_position_y;
+    double icon_width, icon_height;
     int mouse_x, mouse_y;
     d_call(environment, m_environment_get_mouse_normalized, "draw_camera", &mouse_x, &mouse_y);
     d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_get_dimension, &icon_width, &icon_height);
@@ -173,6 +186,7 @@ d_define_method(connectable_factory, delete)(struct s_object *self, struct s_con
 }
 d_define_class(connectable_factory) {d_hook_method(connectable_factory, e_flag_public, add_connectable_template),
                                      d_hook_method(connectable_factory, e_flag_public, get_selected_node),
+                                     d_hook_method(connectable_factory, e_flag_public, is_traffic_generation_required),
                                      d_hook_method(connectable_factory, e_flag_public, click_received),
                                      d_hook_method_override(connectable_factory, e_flag_public, eventable, event),
                                      d_hook_method_override(connectable_factory, e_flag_public, drawable, draw),
