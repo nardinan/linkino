@@ -16,16 +16,151 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "connectable.obj.h"
+unsigned int index_human_name = 0;
+const char *list_human_names[] = {
+  "David",
+  "John",
+  "Paul",
+  "Susan",
+  "Claire",
+  "Sharon",
+  "Angela",
+  "Gillian",
+  "Julie",
+  "Michelle",
+  "William",
+  "Craig",
+  "Michael",
+  "Louise",
+  "Alison",
+  "Colin",
+  "Donna",
+  "Caroline",
+  "Gary",
+  "Lynn",
+  "Derek",
+  "Martin",
+  "Lesley",
+  "Deborah",
+  "Pauline",
+  "Lorraine",
+  "Laura",
+  "Iain",
+  "Gordon",
+  "Alexander",
+  "Linda",
+  "Peter",
+  "Catherine",
+  "Wendy",
+  "Lynne",
+  "Kenneth",
+  "Pamela",
+  "Kirsty",
+  "Douglas",
+  "Emma",
+  "Joanne",
+  "Heather",
+  "Grant",
+  "Anne",
+  "Diane",
+  "Gavin",
+  "Victoria",
+  "Joseph",
+  "Mary",
+  "Daniel",
+  "Marie",
+  "Kerry",
+  "Ann",
+  "Hazel",
+  "Christine",
+  "Gail",
+  "Andrea",
+  "Clare",
+  "Alistair",
+  "Shona",
+  "Kathleen",
+  "Paula",
+  "Ewan",
+  "Ryan",
+  "Melanie",
+  "Patricia",
+  "Patrick",
+  "Ruth",
+  "Bryan",
+  "Lee",
+  "Leigh",
+  "Catriona",
+  "Euan",
+  "Gerard",
+  "Sean",
+  "Wayne",
+  "Katrina",
+  "Calum",
+  "Lynsey",
+  "Cheryl",
+  "Debbie",
+  "Angus",
+  "Russell",
+  "Cameron",
+  "Arlene",
+  "Norman",
+  "Murray",
+  "Gareth",
+  "Judith",
+  "Mandy",
+  "Adrian",
+  "Mhairi",
+  "Samuel",
+  "Gerald",
+  "Gayle",
+  "Justin",
+  "Benjamin",
+  "Shaun",
+  "Callum",
+  "Nicola",
+  "Frank",
+  "Roy",
+  "Claire",
+  "Fiona",
+  "John",
+  "Sharon",
+  "Gillian",
+  "Mark",
+  "Scott",
+  "Andrew",
+  "Louise",
+  "Robert",
+  "Amanda",
+  "Craig",
+  "Alan",
+  "Elaine",
+  "William",
+  "Colin",
+  "Brian",
+  "Lynn",
+  "Deborah",
+  "Lesley",
+  "Margaret",
+  "Barry",
+  "Martin",
+  "Thomas",
+  "Carol",
+  NULL
+};
 struct s_connectable_attributes *p_connectable_alloc(struct s_object *self, struct s_object *stream, struct s_object *environment) {
   struct s_connectable_attributes *result = d_prepare(self, connectable);
   f_bitmap_new(self, stream, environment);  /* inherit */
   f_eventable_new(self);                    /* inherit */
   return result;
 }
-extern struct s_object *f_connectable_new(struct s_object *self, struct s_object *stream, struct s_object *environment, const char *unique_code) {
+extern struct s_object *f_connectable_new(struct s_object *self, struct s_object *stream, struct s_object *environment, t_boolean use_human_name) {
   struct s_connectable_attributes *connectable_attributes = p_connectable_alloc(self, stream, environment);
   memset(&(connectable_attributes->list_connection_nodes), 0, sizeof(struct s_list));
-  strncpy(connectable_attributes->unique_code, unique_code, d_connectable_code_size);
+  if (!use_human_name) {
+    for (unsigned int index = 0; index < (d_connectable_code_size - 1); ++index)
+      connectable_attributes->unique_code[index] = ((rand() % (((char)'Z') - ((char)'A'))) + (char)'A');
+  } else
+    strncpy(connectable_attributes->unique_code, list_human_names[index_human_name++], d_connectable_code_size);
   return self;
 }
 d_define_method(connectable, set_generate_traffic)(struct s_object *self, t_boolean generate_traffic) {
@@ -131,8 +266,8 @@ d_define_method_override(connectable, draw)(struct s_object *self, struct s_obje
         connectable_attributes->normalized = d_true;
       }
       f_primitive_fill_polygon(environment_attributes->renderer, connectable_attributes->rectangle_x, connectable_attributes->rectangle_y,
-                               d_connectable_rectangle_elements, d_connectable_rectangle_R, d_connectable_rectangle_G, d_connectable_rectangle_B,
-                               d_connectable_rectangle_A);
+          d_connectable_rectangle_elements, d_connectable_rectangle_R, d_connectable_rectangle_G, d_connectable_rectangle_B,
+          d_connectable_rectangle_A);
     }
   }
   d_cast_return(result);
@@ -146,10 +281,10 @@ d_define_method(connectable, delete)(struct s_object *self, struct s_connectable
   return NULL;
 }
 d_define_class(connectable) {d_hook_method(connectable, e_flag_public, set_generate_traffic),
-                             d_hook_method(connectable, e_flag_public, add_connection_point),
-                             d_hook_method(connectable, e_flag_public, is_traffic_generation_required),
-                             d_hook_method(connectable, e_flag_public, get_selected_node),
-                             d_hook_method_override(connectable, e_flag_public, eventable, event),
-                             d_hook_method_override(connectable, e_flag_public, drawable, draw),
-                             d_hook_delete(connectable),
-                             d_hook_method_tail};
+  d_hook_method(connectable, e_flag_public, add_connection_point),
+  d_hook_method(connectable, e_flag_public, is_traffic_generation_required),
+  d_hook_method(connectable, e_flag_public, get_selected_node),
+  d_hook_method_override(connectable, e_flag_public, eventable, event),
+  d_hook_method_override(connectable, e_flag_public, drawable, draw),
+  d_hook_delete(connectable),
+  d_hook_method_tail};

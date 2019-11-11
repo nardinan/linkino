@@ -32,6 +32,10 @@ extern struct s_object *f_connector_factory_new(struct s_object *self, struct s_
 d_declare_method(connector_factory, set_drop)(struct s_object *self, t_boolean approve_drop, struct s_connectable_link *link);
 d_declare_method(connector_factory, get_connector_with_source)(struct s_object *self, struct s_connectable_link *link);
 d_declare_method(connector_factory, get_connector_with_destination)(struct s_object *self, struct s_connectable_link *link);
+d_declare_method(connector_factory, is_reachable)(struct s_object *self, struct s_connectable_link *ingoing_link, const char *destination, char *wr_visited,
+    unsigned int *hops);
+d_declare_method(connector_factory, get_connector_for)(struct s_object *self, struct s_connectable_link *ingoing_link, const char *destination, 
+    unsigned int *hops);
 d_declare_method(connector_factory, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event);
 d_declare_method(connector_factory, draw)(struct s_object *self, struct s_object *environment);
 d_declare_method(connector_factory, delete)(struct s_object *self, struct s_connector_factory_attributes *attributes);

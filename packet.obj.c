@@ -37,14 +37,55 @@ struct s_object *f_packet_new(struct s_object *self, struct s_object *ui_factory
   packet_attributes->flags = flags;
   return self;
 }
-d_define_method(packet, set_traveling)(struct s_object *self, t_boolean traveling, struct s_object *connector_traveling, double current_position, 
-    double destination_position) {
+d_define_method(packet, set_traveling)(struct s_object *self, struct s_object *connector_traveling, struct s_connectable_link *ingoing_connectable_link,
+    struct s_connectable_link *outgoing_connectable_link, const char *unique_initial_source, const char *unique_final_destination) {
   d_using(packet);
-  if ((packet_attributes->traveling = traveling)) {
-    packet_attributes->connector_traveling = d_retain(connector_traveling);
-    packet_attributes->current_position = current_position;
-    packet_attributes->destination_position = destination_position;
+  struct s_connector_attributes *connector_attributes = d_cast(connector_traveling, connector);
+  packet_attributes->traveling = d_true;
+  packet_attributes->connector_traveling = d_retain(connector_traveling);
+  packet_attributes->ingoing_connectable_link = ingoing_connectable_link;
+  packet_attributes->outgoing_connectable_link = outgoing_connectable_link;
+  packet_attributes->time_launched = time(NULL);
+  strncpy(packet_attributes->unique_initial_source, unique_initial_source, d_connectable_code_size);
+  strncpy(packet_attributes->unique_final_destination, unique_final_destination, d_connectable_code_size);
+  if (connector_attributes->source_link == ingoing_connectable_link) {
+    packet_attributes->current_position = 0.0;
+    packet_attributes->destination_position = 1.0;
+    packet_attributes->current_direction = d_packet_direction_forward;
+  } else {
+    packet_attributes->current_position = 1.0;
+    packet_attributes->destination_position = 0.0;
+    packet_attributes->current_direction = d_packet_direction_backward;
   }
+  return self;
+}
+d_define_method(packet, set_traveling_next_hop)(struct s_object *self, struct s_object *connector_traveling, 
+    struct s_connectable_link *ingoing_connectable_link, struct s_connectable_link *outgoing_connectable_link) {
+  d_using(packet);
+  struct s_connector_attributes *connector_attributes = d_cast(connector_traveling, connector);
+  if (packet_attributes->connector_traveling)
+    d_delete(packet_attributes->connector_traveling);
+  packet_attributes->connector_traveling = d_retain(connector_traveling);
+  packet_attributes->ingoing_connectable_link = ingoing_connectable_link;
+  packet_attributes->outgoing_connectable_link = outgoing_connectable_link;
+  ++packet_attributes->hops_performed;
+  if (connector_attributes->source_link == ingoing_connectable_link) {
+    packet_attributes->current_position = 0.0;
+    packet_attributes->destination_position = 1.0;
+    packet_attributes->current_direction = d_packet_direction_forward;
+  } else {
+    packet_attributes->current_position = 1.0;
+    packet_attributes->destination_position = 0.0;
+    packet_attributes->current_direction = d_packet_direction_backward;
+  }
+  return self;
+}
+d_define_method(packet, set_traveling_complete)(struct s_object *self) {
+  d_using(packet);
+  packet_attributes->time_arrived = time(NULL);
+  packet_attributes->at_destination = d_true;
+  printf("packet from %s to %s arrived in %ld seconds with %d hops\n", packet_attributes->unique_initial_source, packet_attributes->unique_final_destination,
+      (packet_attributes->time_arrived - packet_attributes->time_launched), packet_attributes->hops_performed);
   return self;
 }
 d_define_method(packet, set_analyzing)(struct s_object *self, t_boolean analyzing) {
@@ -57,14 +98,13 @@ d_define_method(packet, set_traveling_speed)(struct s_object *self, double trave
   packet_attributes->traveling_speed = traveling_speed;
   return self;
 }
-d_define_method(packet, set_direction)(struct s_object *self, double direction) {
-  d_using(packet);
-  packet_attributes->current_direction = direction;
-  return self;
-}
-d_define_method(packet, is_arrived)(struct s_object *self) {
+d_define_method(packet, is_arrived_to_its_hop)(struct s_object *self) {
   d_using(packet);
   d_cast_return((packet_attributes->current_position == packet_attributes->destination_position));
+}
+d_define_method(packet, is_arrived_to_its_destination)(struct s_object *self) {
+  d_using(packet);
+  d_cast_return((packet_attributes->at_destination));
 }
 d_define_method(packet, move_by)(struct s_object *self, double movement) {
   d_using(packet);
@@ -115,10 +155,12 @@ d_define_method(packet, delete)(struct s_object *self, struct s_packet_attribute
   return NULL;
 }
 d_define_class(packet) {d_hook_method(packet, e_flag_public, set_traveling),
+                        d_hook_method(packet, e_flag_public, set_traveling_next_hop),
+                        d_hook_method(packet, e_flag_public, set_traveling_complete),
                         d_hook_method(packet, e_flag_public, set_analyzing),
                         d_hook_method(packet, e_flag_public, set_traveling_speed),
-                        d_hook_method(packet, e_flag_public, set_direction),
-                        d_hook_method(packet, e_flag_public, is_arrived),
+                        d_hook_method(packet, e_flag_public, is_arrived_to_its_hop),
+                        d_hook_method(packet, e_flag_public, is_arrived_to_its_destination),
                         d_hook_method(packet, e_flag_public, move_by),
                         d_hook_method_override(packet, e_flag_public, eventable, event),
                         d_hook_method_override(packet, e_flag_public, drawable, draw),

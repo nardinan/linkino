@@ -37,7 +37,7 @@ d_define_method(connector_factory, set_drop)(struct s_object *self, t_boolean ap
     /* we need to be sure that we can approve the drop. The source and the destination have to be different and the link should not be already
      * linked to something else */
     if (((!link) || (!link->is_connected)) && ((!link) || (!connector_factory_attributes->source_link) ||
-                                               (f_string_strcmp(connector_factory_attributes->source_link->unique_code, link->unique_code) != 0))) {
+          (f_string_strcmp(connector_factory_attributes->source_link->unique_code, link->unique_code) != 0))) {
       if (connector_factory_attributes->source_link)
         connector_factory_attributes->destination_link = link;
       else
@@ -78,6 +78,53 @@ d_define_method(connector_factory, get_connector_with_destination)(struct s_obje
     } 
   return result;
 }
+d_define_method(connector_factory, is_reachable)(struct s_object *self, struct s_connectable_link *ingoing_link, const char *destination, char *wr_visited, 
+    unsigned int *hops) {
+  d_using(connector_factory);
+  unsigned int global_hops_detected;
+  struct s_connectable_link *result = NULL;
+  size_t entries;
+  strcat(wr_visited, " ");
+  strcat(wr_visited, ingoing_link->unique_code);
+  d_call(connector_factory_attributes->array_of_connectors, m_array_size, &entries);
+  for (size_t index = 0; index < entries; ++index) {
+    struct s_object *connector = d_call(connector_factory_attributes->array_of_connectors, m_array_get, index);
+    if (connector) {
+      struct s_connector_attributes *connector_attributes = d_cast(connector, connector);
+      struct s_connectable_link *outgoing_link = NULL; 
+      if ((f_string_strcmp(connector_attributes->source_link->unique_code, ingoing_link->unique_code) == 0))
+        outgoing_link = connector_attributes->destination_link;
+      else if ((f_string_strcmp(connector_attributes->destination_link->unique_code, ingoing_link->unique_code) == 0))
+        outgoing_link = connector_attributes->source_link;
+      if (outgoing_link) {
+        if ((f_string_strcmp(outgoing_link->unique_code, destination) == 0)) {
+          /* we found it, is here, is impossible that on the same node we might find something less far from here */
+          global_hops_detected = (*hops + 1);
+          result = outgoing_link;
+        } else if (!strstr(wr_visited, outgoing_link->unique_code)) {
+          /* has not been visited yet so we can go deeper */
+          unsigned int local_hops_detected = (*hops + 1);
+          if (((intptr_t)d_call(self, m_connector_factory_is_reachable, outgoing_link, destination, wr_visited, &local_hops_detected)))
+            /* we found it passing through this path, so, in case the global number of hops is bigger, we normalize it to this one */
+            if ((!result) || (local_hops_detected < global_hops_detected)) {
+              global_hops_detected = local_hops_detected;
+              result = outgoing_link;
+            }
+        }
+      }
+    }
+  }
+  if (result) {
+    *hops = global_hops_detected;
+  }
+  d_cast_return(result);
+}
+d_define_method(connector_factory, get_connector_for)(struct s_object *self, struct s_connectable_link *ingoing_link, const char *destination, 
+    unsigned int *hops) {
+  char buffer_already_visited_nodes[d_string_buffer_size] = {0};
+  *hops = 0;
+  d_cast_return(d_call(self, m_connector_factory_is_reachable, ingoing_link, destination, buffer_already_visited_nodes, hops));
+}
 d_define_method_override(connector_factory, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event) {
   d_using(connector_factory);
   t_boolean changed = d_false;
@@ -91,13 +138,13 @@ d_define_method_override(connector_factory, event)(struct s_object *self, struct
        * Anyway, before doing anything, we need to update the destination of the active_connector using the current position of the mouse
        */
       d_call(connector_factory_attributes->active_connector, m_connector_set_destination, (double)mouse_x, (double)mouse_y,
-        connector_factory_attributes->destination_link);
+          connector_factory_attributes->destination_link);
       if (current_event->type == SDL_MOUSEBUTTONDOWN) {
         t_boolean reset_entry = d_false;
         if ((connector_factory_attributes->approve_drop) && (connector_factory_attributes->destination_link)) {
           if (current_event->button.button == SDL_BUTTON_LEFT) {
             d_call(connector_factory_attributes->active_connector, m_connector_set_destination, connector_factory_attributes->destination_link->final_position_x,
-              connector_factory_attributes->destination_link->final_position_y, connector_factory_attributes->destination_link);
+                connector_factory_attributes->destination_link->final_position_y, connector_factory_attributes->destination_link);
             d_call(connector_factory_attributes->array_of_connectors, m_array_push, connector_factory_attributes->active_connector);
             connector_factory_attributes->source_link->is_connected = d_true;
             connector_factory_attributes->destination_link->is_connected = d_true;
@@ -155,9 +202,11 @@ d_declare_method(connector_factory, delete)(struct s_object *self, struct s_conn
   return NULL;
 }
 d_define_class(connector_factory) {d_hook_method(connector_factory, e_flag_public, set_drop),
-                                   d_hook_method(connector_factory, e_flag_public, get_connector_with_source),
-                                   d_hook_method(connector_factory, e_flag_public, get_connector_with_destination),
-                                   d_hook_method_override(connector_factory, e_flag_public, eventable, event),
-                                   d_hook_method_override(connector_factory, e_flag_public, drawable, draw),
-                                   d_hook_delete(connector_factory),
-                                   d_hook_method_tail};
+  d_hook_method(connector_factory, e_flag_public, get_connector_with_source),
+  d_hook_method(connector_factory, e_flag_public, get_connector_with_destination),
+  d_hook_method(connector_factory, e_flag_private, is_reachable),
+  d_hook_method(connector_factory, e_flag_public, get_connector_for),
+  d_hook_method_override(connector_factory, e_flag_public, eventable, event),
+  d_hook_method_override(connector_factory, e_flag_public, drawable, draw),
+  d_hook_delete(connector_factory),
+  d_hook_method_tail};

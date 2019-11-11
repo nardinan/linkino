@@ -21,8 +21,8 @@
 #include "connector.obj.h"
 #define d_packet_maximum_lines 15
 #define d_packet_maximum_line_size 256
-#define d_packet_direction_first_to_second (1.0)
-#define d_packet_direction_second_to_first (-1.0)
+#define d_packet_direction_forward (1.0)
+#define d_packet_direction_backward (-1.0)
 #define d_packet_spam         0x0001
 #define d_packet_rogue        0x0002
 d_declare_class(packet) {
@@ -31,20 +31,26 @@ d_declare_class(packet) {
   struct s_object *ui_label_content;
   struct s_object *ui_button_close;
   struct s_object *connector_traveling;
+  struct s_connectable_link *ingoing_connectable_link, *outgoing_connectable_link;
   double traveling_speed, current_position, destination_position, current_direction; // current_position has to be normalized between 0 and 1
   char unique_initial_source[d_connectable_code_size], unique_final_destination[d_connectable_code_size];
-  t_boolean analyzing, traveling;
+  t_boolean analyzing, traveling, at_destination;
+  time_t time_launched, time_arrived;
+  unsigned int hops_performed;
   int flags;
 } d_declare_class_tail(packet);
 struct s_packet_attributes *p_packet_alloc(struct s_object *self);
 extern struct s_object *f_packet_new(struct s_object *self, struct s_object *ui_factory, struct s_object *drawable_icon, 
     struct s_object *drawable_background, const char *body_content, int flags);
-d_declare_method(packet, set_traveling)(struct s_object *self, t_boolean traveling, struct s_object *connector_traveling, double current_position,
-    double destination_position);
+d_declare_method(packet, set_traveling)(struct s_object *self, struct s_object *connector_traveling, struct s_connectable_link *ingoing_connectable_link,
+    struct s_connectable_link *outgoing_connectable_link, const char *unique_initial_source, const char *unique_final_destination);
+d_declare_method(packet, set_traveling_next_hop)(struct s_object *self, struct s_object *connector_traveling, 
+    struct s_connectable_link *ingoing_connectable_link, struct s_connectable_link *outgoing_connectable_link);
+d_declare_method(packet, set_traveling_complete)(struct s_object *self);
 d_declare_method(packet, set_analyzing)(struct s_object *self, t_boolean analyzing);
 d_declare_method(packet, set_traveling_speed)(struct s_object *self, double traveling_speed);
-d_declare_method(packet, set_direction)(struct s_object *self, double direction);
-d_declare_method(packet, is_arrived)(struct s_object *self);
+d_declare_method(packet, is_arrived_to_its_hop)(struct s_object *self);
+d_declare_method(packet, is_arrived_to_its_destination)(struct s_object *self);
 d_declare_method(packet, move_by)(struct s_object *self, double movement);
 d_declare_method(packet, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event);
 d_declare_method(packet, draw)(struct s_object *self, struct s_object *environment);

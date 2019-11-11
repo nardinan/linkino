@@ -48,6 +48,10 @@ d_define_method(connector, set_destination)(struct s_object *self, double destin
       d_assert(connector_attributes->destination_point = f_point_new(d_new(point), destination_x, destination_y));
   }
   connector_attributes->destination_link = link;
+  if ((connector_attributes->source_link) && (connector_attributes->destination_link)) {
+    connector_attributes->source_link->connector = self;
+    connector_attributes->destination_link->connector = self;
+  }
   return self;
 }
 d_define_method(connector, get_point)(struct s_object *self, double percentage_path, double *position_x, double *position_y) {

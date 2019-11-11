@@ -25,13 +25,16 @@
 #define d_connectable_rectangle_G 255
 #define d_connectable_rectangle_B 10
 #define d_connectable_rectangle_A 100
-#define d_connectable_code_size 6
+#define d_connectable_code_size 10
 #define d_connectable_min_seconds_between_generation 5
 #define d_connectable_max_seconds_between_generation 25
+extern unsigned int index_human_name;
+extern const char *list_human_names[];
 struct s_connectable_link { d_list_node_head;
   double offset_x, offset_y, width, height, final_position_x, final_position_y;
   char label[d_string_buffer_size], unique_code[d_connectable_code_size];
   struct s_object *connectable;
+  struct s_object *connector;
   t_boolean is_connected;
 } s_connectable_link;
 d_declare_class(connectable) {
@@ -44,7 +47,7 @@ d_declare_class(connectable) {
   char unique_code[d_connectable_code_size];
 } d_declare_class_tail(connectable);
 struct s_connectable_attributes *p_connectable_alloc(struct s_object *self, struct s_object *stream, struct s_object *environment);
-extern struct s_object *f_connectable_new(struct s_object *self, struct s_object *stream, struct s_object *environment, const char *unique_code);
+extern struct s_object *f_connectable_new(struct s_object *self, struct s_object *stream, struct s_object *environment, t_boolean use_human_name);
 d_declare_method(connectable, set_generate_traffic)(struct s_object *self, t_boolean generate_traffic);
 d_declare_method(connectable, add_connection_point)(struct s_object *self, double offset_x, double offset_y, const char *label);
 d_declare_method(connectable, get_selected_node)(struct s_object *self);
