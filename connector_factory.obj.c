@@ -119,10 +119,12 @@ d_define_method(connector_factory, is_reachable)(struct s_object *self, struct s
   }
   d_cast_return(result);
 }
-d_define_method(connector_factory, get_connector_for)(struct s_object *self, struct s_connectable_link *ingoing_link, const char *destination, 
-    unsigned int *hops) {
+d_define_method(connector_factory, get_connector_for)(struct s_object *self, struct s_connectable_link *ingoing_link, 
+    struct s_connectable_link *previous_ingoing_link, const char *destination, unsigned int *hops) {
   char buffer_already_visited_nodes[d_string_buffer_size] = {0};
   *hops = 0;
+  if (previous_ingoing_link)
+    strcat(buffer_already_visited_nodes, previous_ingoing_link->unique_code);
   d_cast_return(d_call(self, m_connector_factory_is_reachable, ingoing_link, destination, buffer_already_visited_nodes, hops));
 }
 d_define_method_override(connector_factory, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event) {

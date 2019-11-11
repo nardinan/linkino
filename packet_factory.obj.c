@@ -74,7 +74,8 @@ d_define_method(packet_factory, forward_packet)(struct s_object *self, struct s_
       unsigned int current_hops, selected_hops;
       d_foreach(&(connectable_attributes->list_connection_nodes), current_connectable_link, struct s_connectable_link)
         if ((next_connectable_link = (struct s_connectable_link *)d_call(packet_factory_attributes->connector_factory,
-                m_connector_factory_get_connector_for, current_connectable_link, packet_attributes->unique_final_destination, &current_hops)))
+                m_connector_factory_get_connector_for, current_connectable_link, packet_attributes->ingoing_connectable_link, 
+                packet_attributes->unique_final_destination, &current_hops)))
           if ((!selected_ingoing_connectable_link) || (!selected_outgoing_connectable_link) || (current_hops < selected_hops)) {
             struct s_connector_attributes *connector_attributes = d_cast(next_connectable_link->connector, connector);
             selected_outgoing_connectable_link = next_connectable_link;
@@ -141,7 +142,7 @@ d_define_method_override(packet_factory, draw)(struct s_object *self, struct s_o
       unsigned int hops;
       d_foreach(&(connectable_attributes->list_connection_nodes), current_connectable_link, struct s_connectable_link)
         if ((next_step_link = (struct s_connectable_link *)d_call(packet_factory_attributes->connector_factory, m_connector_factory_get_connector_for, 
-                source_connectable_link, connectable_attributes->unique_code, &hops)))
+                source_connectable_link, NULL, connectable_attributes->unique_code, &hops)))
           /* yeah, this is reachable and 'next_step_link' contains the next node we have to reach to join the final target */
           break;
       if (next_step_link)
