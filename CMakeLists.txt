@@ -22,7 +22,9 @@ add_executable(linkino
         director.obj.c 
         director.obj.h 
         packet.obj.c 
-        packet.obj.h)
+        packet.obj.h
+        packet_factory.obj.h
+        packet_factory.obj.c)
 
 INCLUDE(FindPkgConfig)
 PKG_SEARCH_MODULE(SDL2 REQUIRED sdl2)

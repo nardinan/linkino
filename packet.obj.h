@@ -32,6 +32,7 @@ d_declare_class(packet) {
   struct s_object *ui_button_close;
   struct s_object *connector_traveling;
   double traveling_speed, current_position, destination_position, current_direction; // current_position has to be normalized between 0 and 1
+  char unique_initial_source[d_connectable_code_size], unique_final_destination[d_connectable_code_size];
   t_boolean analyzing, traveling;
   int flags;
 } d_declare_class_tail(packet);
