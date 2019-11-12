@@ -30,6 +30,8 @@ struct s_object *f_connector_new(struct s_object *self, struct s_object *drawabl
     d_assert(connector_attributes->starting_point = f_point_new(d_new(point), source_x, source_y));
   }
   connector_attributes->source_link = link;
+  connector_attributes->target_weight = 0.0;
+  connector_attributes->current_weight = 0.0;
   return self;
 }
 d_define_method(connector, set_starting)(struct s_object *self, double starting_x, double starting_y, struct s_connectable_link *link) {
@@ -52,6 +54,11 @@ d_define_method(connector, set_destination)(struct s_object *self, double destin
     connector_attributes->source_link->connector = self;
     connector_attributes->destination_link->connector = self;
   }
+  return self;
+}
+d_define_method(connector, set_weight)(struct s_object *self, double current_weight) {
+  d_using(connector);
+  connector_attributes->target_weight = current_weight;
   return self;
 }
 d_define_method(connector, get_point)(struct s_object *self, double percentage_path, double *position_x, double *position_y) {
@@ -114,11 +121,22 @@ d_define_method_override(connector, draw)(struct s_object *self, struct s_object
   struct s_environment_attributes *environment_attributes = d_cast(environment, environment);
   struct s_camera_attributes *camera_attributes = d_cast(environment_attributes->current_camera, camera);
   memset(connector_attributes->segments, 0, (sizeof(struct s_connector_segment) * d_connector_maximum_segments));
+  /* we can calculate the weight of the connector by checking he number of elements that generate traffic, and the number of packets currently 
+   * traveling in the connector
+   */
+  if (connector_attributes->target_weight > connector_attributes->current_weight)
+    connector_attributes->current_weight += d_connector_increment_weight_per_frame;
+  else if (connector_attributes->target_weight < connector_attributes->current_weight)
+    connector_attributes->current_weight -= d_connector_increment_weight_per_frame;
   if ((connector_attributes->destination_point) && (connector_attributes->drawable)) {
     double starting_position_x, starting_position_y, final_position_x, final_position_y, length_first_half = 0, length_second_half = 0, drawable_width,
-      drawable_height, higher_vertical_position, lower_vertical_position;
+           drawable_height, higher_vertical_position, lower_vertical_position;
+    unsigned int current_mask_red = 255, current_mask_green = (unsigned int)((1.0 - connector_attributes->current_weight) * 255),
+                 current_mask_blue = (unsigned int)((1.0 - connector_attributes->current_weight) * 255);
     int segment_index = 0;
     t_boolean reached;
+    /* we need to mask the drawable using the current_weight */
+    d_call(connector_attributes->drawable, m_drawable_set_maskRGB, current_mask_red, current_mask_blue, current_mask_green);
     d_call(connector_attributes->drawable, m_drawable_get_dimension, &drawable_width, &drawable_height);
     d_call(connector_attributes->starting_point, m_point_get, &starting_position_x, &starting_position_y);
     d_call(connector_attributes->destination_point, m_point_get, &final_position_x, &final_position_y);
@@ -168,8 +186,8 @@ d_define_method_override(connector, draw)(struct s_object *self, struct s_object
       } else
         d_call(connector_attributes->drawable, m_drawable_set_dimension_w, drawable_width);
       if ((d_call(connector_attributes->drawable, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
-        camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
-        camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
+              camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
+              camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
         while (((intptr_t)d_call(connector_attributes->drawable, m_drawable_draw, environment)) == d_drawable_return_continue);
     }
     connector_attributes->segments[++segment_index].initialized = d_true;
@@ -189,8 +207,8 @@ d_define_method_override(connector, draw)(struct s_object *self, struct s_object
       } else
         d_call(connector_attributes->drawable, m_drawable_set_dimension_w, drawable_width);
       if ((d_call(connector_attributes->drawable, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
-        camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
-        camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
+              camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
+              camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
         while (((intptr_t)d_call(connector_attributes->drawable, m_drawable_draw, environment)) == d_drawable_return_continue);
     }
     connector_attributes->segments[++segment_index].initialized = d_true;
@@ -209,8 +227,8 @@ d_define_method_override(connector, draw)(struct s_object *self, struct s_object
         } else
           d_call(connector_attributes->drawable, m_drawable_set_dimension_w, drawable_width);
         if ((d_call(connector_attributes->drawable, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
-          camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
-          camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
+                camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
+                camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
           while (((intptr_t)d_call(connector_attributes->drawable, m_drawable_draw, environment)) == d_drawable_return_continue);
       }
     }
@@ -229,8 +247,9 @@ d_define_method(connector, delete)(struct s_object *self, struct s_connector_att
   return NULL;
 }
 d_define_class(connector) {d_hook_method(connector, e_flag_public, set_starting),
-                           d_hook_method(connector, e_flag_public, set_destination),
-                           d_hook_method(connector, e_flag_public, get_point),
-                           d_hook_method_override(connector, e_flag_public, drawable, draw),
-                           d_hook_delete(connector),
-                           d_hook_method_tail};
+  d_hook_method(connector, e_flag_public, set_destination),
+  d_hook_method(connector, e_flag_public, set_weight),
+  d_hook_method(connector, e_flag_public, get_point),
+  d_hook_method_override(connector, e_flag_public, drawable, draw),
+  d_hook_delete(connector),
+  d_hook_method_tail};

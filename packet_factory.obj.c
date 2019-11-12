@@ -92,6 +92,35 @@ d_define_method(packet_factory, forward_packet)(struct s_object *self, struct s_
   }
   return result;
 }
+d_define_method(packet_factory, update_connector_weights)(struct s_object *self) {
+  d_using(packet_factory);
+  struct s_connectable_factory_attributes *connectable_factory_attributes = d_cast(packet_factory_attributes->connectable_factory, connectable_factory);
+  struct s_object *current_connectable;
+  size_t traffic_generators = 0;
+  d_array_foreach(connectable_factory_attributes->array_connectable_instances, current_connectable) {
+    struct s_connectable_attributes *connectable_attributes = d_cast(current_connectable, connectable);
+    if (connectable_attributes->generate_traffic)
+      ++traffic_generators;
+  }
+  if (traffic_generators > 0) {
+    struct s_connector_factory_attributes *connector_factory_attributes = d_cast(packet_factory_attributes->connector_factory, connector_factory);
+    struct s_object *current_connector;
+    if (connector_factory_attributes->array_of_connectors)
+      d_array_foreach(connector_factory_attributes->array_of_connectors, current_connector) {
+        struct s_object *current_packet;
+        size_t packets_running_on_it = 0;
+        /* we need to check each packet associated to current_connector */
+        d_array_foreach(packet_factory_attributes->array_packets_traveling, current_packet) {
+          struct s_packet_attributes *packet_attributes = d_cast(current_packet, packet);
+          if (((packet_attributes->ingoing_connectable_link->connector == current_connector) ||
+                (packet_attributes->outgoing_connectable_link->connector == current_connector)) && (!packet_attributes->at_destination))
+            ++packets_running_on_it;
+        }
+        d_call(current_connector, m_connector_set_weight, (double)((double)packets_running_on_it/(double)traffic_generators));
+      }
+  }
+  return self;
+}
 d_define_method_override(packet_factory, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event) {
   t_boolean changed = d_false;
   d_cast_return(((changed) ? e_eventable_status_captured : e_eventable_status_ignored));
@@ -102,6 +131,7 @@ d_define_method_override(packet_factory, draw)(struct s_object *self, struct s_o
   struct s_camera_attributes *camera_attributes = d_cast(environment_attributes->current_camera, camera);
   struct s_object *current_packet;
   struct s_connectable_link *source_connectable_link;
+  d_call(self, m_packet_factory_update_connector_weights, NULL);
   d_array_foreach(packet_factory_attributes->array_packets_traveling, current_packet)
     if (!((intptr_t)d_call(current_packet, m_packet_is_arrived_to_its_destination, NULL)))
       if (!((intptr_t)d_call(current_packet, m_packet_is_arrived_to_its_hop, NULL))) {
@@ -168,6 +198,7 @@ d_define_method(packet_factory, delete)(struct s_object *self, struct s_packet_f
 }
 d_define_class(packet_factory) {d_hook_method(packet_factory, e_flag_public, create_packet),
   d_hook_method(packet_factory, e_flag_public, forward_packet),
+  d_hook_method(packet_factory, e_flag_public, update_connector_weights),
   d_hook_method_override(packet_factory, e_flag_public, eventable, event),
   d_hook_method_override(packet_factory, e_flag_public, drawable, draw),
   d_hook_delete(packet_factory)};

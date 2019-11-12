@@ -26,8 +26,8 @@
 #define d_connectable_rectangle_B 10
 #define d_connectable_rectangle_A 100
 #define d_connectable_code_size 10
-#define d_connectable_min_seconds_between_generation 5
-#define d_connectable_max_seconds_between_generation 25
+#define d_connectable_min_seconds_between_generation 1
+#define d_connectable_max_seconds_between_generation 10
 extern unsigned int index_human_name;
 extern const char *list_human_names[];
 struct s_connectable_link { d_list_node_head;

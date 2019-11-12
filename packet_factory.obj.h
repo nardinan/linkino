@@ -42,6 +42,7 @@ extern struct s_object *f_packet_factory_new(struct s_object *self, struct s_obj
 d_declare_method(packet_factory, create_packet)(struct s_object *self, struct s_object *environment, const char *unique_code_source,
     const char *unique_code_destination, struct s_connectable_link *ingoing_connectable_link);
 d_declare_method(packet_factory, forward_packet)(struct s_object *self, struct s_object *environment, struct s_object *packet);
+d_declare_method(packet_factory, update_connector_weights)(struct s_object *self);
 d_declare_method(packet_factory, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event);
 d_declare_method(packet_factory, draw)(struct s_object *self, struct s_object *environment);
 d_declare_method(packet_factory, delete)(struct s_object *self, struct s_packet_factory_attributes *attributes);
