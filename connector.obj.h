@@ -21,6 +21,10 @@
 #include "connectable.obj.h"
 #define d_connector_maximum_segments 10
 #define d_connector_increment_weight_per_frame 0.01
+#define d_connector_selected_line_distance 8
+#define d_connector_maximum_time_snap 4
+#define d_connector_minimum_time_snap 2
+#define d_connector_overload_limitation 0.75
 struct s_connector_segment {
   double position_x, position_y;
   t_boolean initialized;
@@ -32,6 +36,7 @@ d_declare_class(connector) {
   double separation, target_weight, current_weight;
   struct s_connectable_link *source_link, *destination_link;
   struct s_connector_segment segments[d_connector_maximum_segments];
+  time_t snapping_time, last_timestamp_below_maximum;
 } d_declare_class_tail(connector);
 struct s_connector_attributes *p_connector_alloc(struct s_object *self);
 extern struct s_object *f_connector_new(struct s_object *self, struct s_object *drawable, double source_x, double source_y, struct s_connectable_link *link);
@@ -39,6 +44,11 @@ d_declare_method(connector, set_starting)(struct s_object *self, double starting
 d_declare_method(connector, set_destination)(struct s_object *self, double destination_x, double destination_y, struct s_connectable_link *link);
 d_declare_method(connector, set_weight)(struct s_object *self, double current_weight);
 d_declare_method(connector, get_point)(struct s_object *self, double percentage_path, double *position_x, double *position_y);
+d_declare_method(connector, is_over_line)(struct s_object *self, int position_x, int position_y, int line_start_x, int line_start_y, 
+    int line_end_x, int line_end_y);
+d_declare_method(connector, is_over)(struct s_object *self, int position_x, int position_y);
+d_declare_method(connector, is_snapped)(struct s_object *self);
 d_declare_method(connector, draw)(struct s_object *self, struct s_object *environment);
+d_declare_method(connector, destroy_links)(struct s_object *self);
 d_declare_method(connector, delete)(struct s_object *self, struct s_connector_attributes *attributes);
 #endif

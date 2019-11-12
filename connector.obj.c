@@ -28,10 +28,12 @@ struct s_object *f_connector_new(struct s_object *self, struct s_object *drawabl
   if ((connector_attributes->drawable = d_retain(drawable))) {
     connector_attributes->separation = 0.5; /* by default is half of the line */
     d_assert(connector_attributes->starting_point = f_point_new(d_new(point), source_x, source_y));
+    d_assert(connector_attributes->destination_point = f_point_new(d_new(point), source_x, source_y));
   }
   connector_attributes->source_link = link;
   connector_attributes->target_weight = 0.0;
   connector_attributes->current_weight = 0.0;
+  connector_attributes->snapping_time = d_connector_minimum_time_snap + (rand()%(d_connector_maximum_time_snap - d_connector_minimum_time_snap));
   return self;
 }
 d_define_method(connector, set_starting)(struct s_object *self, double starting_x, double starting_y, struct s_connectable_link *link) {
@@ -44,15 +46,12 @@ d_define_method(connector, set_starting)(struct s_object *self, double starting_
 d_define_method(connector, set_destination)(struct s_object *self, double destination_x, double destination_y, struct s_connectable_link *link) {
   d_using(connector);
   if (connector_attributes->drawable) {
-    if (connector_attributes->destination_point)
-      d_call(connector_attributes->destination_point, m_point_set, destination_x, destination_y);
-    else
-      d_assert(connector_attributes->destination_point = f_point_new(d_new(point), destination_x, destination_y));
+    d_call(connector_attributes->destination_point, m_point_set, destination_x, destination_y);
   }
   connector_attributes->destination_link = link;
   if ((connector_attributes->source_link) && (connector_attributes->destination_link)) {
-    connector_attributes->source_link->connector = self;
-    connector_attributes->destination_link->connector = self;
+    connector_attributes->source_link->connector = d_retain(self);
+    connector_attributes->destination_link->connector = d_retain(self);
   }
   return self;
 }
@@ -116,6 +115,33 @@ d_define_method(connector, get_point)(struct s_object *self, double percentage_p
   }
   return result;
 }
+d_define_method(connector, is_over_line)(struct s_object *self, int position_x, int position_y, int line_start_x, int line_start_y, 
+    int line_end_x, int line_end_y) {
+  struct s_object *result = NULL;
+  int delta_y = (line_start_y - line_end_y), delta_x = (line_end_x - line_start_x), w = (line_start_x * line_end_y) - (line_end_x * line_start_y);
+  double distance_to_line = ((delta_y * position_x) + (delta_x * position_y) + w)/
+    f_math_sqrt(d_math_square(delta_y) + d_math_square(delta_x), d_math_default_precision);
+  if (fabs(distance_to_line) < d_connector_selected_line_distance)
+    result = self;
+  return result;
+}
+d_define_method(connector, is_over)(struct s_object *self, int position_x, int position_y) {
+  d_using(connector);
+  struct s_object *result = NULL;
+  for (unsigned int index = 1; (connector_attributes->segments[index].initialized) && (!result); ++index) {
+    result = d_call(self, m_connector_is_over_line, position_x, position_y, (int)connector_attributes->segments[index - 1].position_x, 
+        (int)connector_attributes->segments[index - 1].position_y, (int)connector_attributes->segments[index].position_x, 
+        (int)connector_attributes->segments[index].position_y);
+  }
+  return result;
+}
+d_define_method(connector, is_snapped)(struct s_object *self) {
+  d_using(connector);
+  struct s_object *result = NULL;
+  if ((time(NULL) - connector_attributes->last_timestamp_below_maximum) > connector_attributes->snapping_time)
+    result = self;
+  return result;
+}
 d_define_method_override(connector, draw)(struct s_object *self, struct s_object *environment) {
   d_using(connector);
   struct s_environment_attributes *environment_attributes = d_cast(environment, environment);
@@ -128,11 +154,15 @@ d_define_method_override(connector, draw)(struct s_object *self, struct s_object
     connector_attributes->current_weight += d_connector_increment_weight_per_frame;
   else if (connector_attributes->target_weight < connector_attributes->current_weight)
     connector_attributes->current_weight -= d_connector_increment_weight_per_frame;
+  /* eventually, if the load of the arc is below 1.0, we update the timer in order to avoid a possible snap */
+  if (connector_attributes->current_weight < d_connector_overload_limitation)
+    connector_attributes->last_timestamp_below_maximum = time(NULL);
   if ((connector_attributes->destination_point) && (connector_attributes->drawable)) {
     double starting_position_x, starting_position_y, final_position_x, final_position_y, length_first_half = 0, length_second_half = 0, drawable_width,
-           drawable_height, higher_vertical_position, lower_vertical_position;
-    unsigned int current_mask_red = 255, current_mask_green = (unsigned int)((1.0 - connector_attributes->current_weight) * 255),
-                 current_mask_blue = (unsigned int)((1.0 - connector_attributes->current_weight) * 255);
+           drawable_height, higher_vertical_position, lower_vertical_position, 
+           normalized_weight = d_math_min(1.0, d_math_max(connector_attributes->current_weight, 0.0));
+    unsigned int current_mask_red = 255, current_mask_green = (unsigned int)((1.0 - normalized_weight) * 255),
+                 current_mask_blue = (unsigned int)((1.0 - normalized_weight) * 255);
     int segment_index = 0;
     t_boolean reached;
     /* we need to mask the drawable using the current_weight */
@@ -237,7 +267,28 @@ d_define_method_override(connector, draw)(struct s_object *self, struct s_object
   }
   d_cast_return(d_drawable_return_last);
 }
+d_define_method(connector, destroy_links)(struct s_object *self) {
+  d_using(connector);
+  if ((connector_attributes->destination_link) && (connector_attributes->destination_link->connector)) {
+    d_delete(connector_attributes->destination_link->connector);
+    connector_attributes->destination_link->connector = NULL;
+  }
+  if ((connector_attributes->source_link) && (connector_attributes->source_link->connector)) {
+    d_delete(connector_attributes->source_link->connector);
+    connector_attributes->source_link->connector = NULL;
+  }
+  return self;
+}
 d_define_method(connector, delete)(struct s_object *self, struct s_connector_attributes *attributes) {
+  printf("has been deleted\n");
+  if ((attributes->destination_link) && (attributes->destination_link->connector)) {
+    d_delete(attributes->destination_link->connector);
+    attributes->destination_link->connector = NULL;
+  }
+  if ((attributes->source_link) && (attributes->source_link->connector)) {
+    d_delete(attributes->source_link->connector);
+    attributes->source_link->connector = NULL;
+  }
   if (attributes->drawable)
     d_delete(attributes->drawable);
   if (attributes->starting_point)
@@ -250,6 +301,10 @@ d_define_class(connector) {d_hook_method(connector, e_flag_public, set_starting)
   d_hook_method(connector, e_flag_public, set_destination),
   d_hook_method(connector, e_flag_public, set_weight),
   d_hook_method(connector, e_flag_public, get_point),
+  d_hook_method(connector, e_flag_private, is_over_line),
+  d_hook_method(connector, e_flag_public, is_over),
+  d_hook_method(connector, e_flag_public, is_snapped),
   d_hook_method_override(connector, e_flag_public, drawable, draw),
+  d_hook_method(connector, e_flag_public, destroy_links),
   d_hook_delete(connector),
   d_hook_method_tail};

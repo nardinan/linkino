@@ -36,7 +36,7 @@ d_define_method(connector_factory, set_drop)(struct s_object *self, t_boolean ap
   if (approve_drop) {
     /* we need to be sure that we can approve the drop. The source and the destination have to be different and the link should not be already
      * linked to something else */
-    if (((!link) || (!link->is_connected)) && ((!link) || (!connector_factory_attributes->source_link) ||
+    if (((!link) || (!link->connector)) && ((!link) || (!connector_factory_attributes->source_link) ||
           (f_string_strcmp(connector_factory_attributes->source_link->unique_code, link->unique_code) != 0))) {
       if (connector_factory_attributes->source_link)
         connector_factory_attributes->destination_link = link;
@@ -83,13 +83,13 @@ d_define_method(connector_factory, is_reachable)(struct s_object *self, struct s
   d_using(connector_factory);
   unsigned int global_hops_detected;
   struct s_connectable_link *result = NULL;
+  struct s_object *connector;
   size_t entries;
   strcat(wr_visited, " ");
   strcat(wr_visited, ingoing_link->unique_code);
   d_call(connector_factory_attributes->array_of_connectors, m_array_size, &entries);
-  for (size_t index = 0; index < entries; ++index) {
-    struct s_object *connector = d_call(connector_factory_attributes->array_of_connectors, m_array_get, index);
-    if (connector) {
+  for (size_t index = 0; index < entries; ++index)
+    if ((connector = d_call(connector_factory_attributes->array_of_connectors, m_array_get, index))) {
       struct s_connector_attributes *connector_attributes = d_cast(connector, connector);
       struct s_connectable_link *outgoing_link = NULL; 
       if ((f_string_strcmp(connector_attributes->source_link->unique_code, ingoing_link->unique_code) == 0))
@@ -113,7 +113,6 @@ d_define_method(connector_factory, is_reachable)(struct s_object *self, struct s
         }
       }
     }
-  }
   if (result) {
     *hops = global_hops_detected;
   }
@@ -127,6 +126,31 @@ d_define_method(connector_factory, get_connector_for)(struct s_object *self, str
     strcat(buffer_already_visited_nodes, previous_ingoing_link->unique_code);
   d_cast_return(d_call(self, m_connector_factory_is_reachable, ingoing_link, destination, buffer_already_visited_nodes, hops));
 }
+d_define_method(connector_factory, check_snapped)(struct s_object *self) {
+  d_using(connector_factory);
+  size_t entries;
+  t_boolean connector_deleted = d_true;
+  d_call(connector_factory_attributes->array_of_connectors, m_array_size, &entries);
+  while (connector_deleted) {
+    struct s_object *current_connector;
+    connector_deleted = d_false;
+    for (size_t index = 0; index < entries; ++index)
+      if ((current_connector = d_call(connector_factory_attributes->array_of_connectors, m_array_get, index)))
+        if (d_call(current_connector, m_connector_is_snapped, NULL)) {
+          /* the connector has been snapped! Damn! */
+          printf("ARC SNAPPED due to an overload\n");
+          ++(connector_factory_attributes->snapped_connectors);
+          d_call(current_connector, m_connector_destroy_links, NULL);
+          d_call(connector_factory_attributes->array_of_connectors, m_array_remove, index);
+          d_call(connector_factory_attributes->array_of_connectors, m_array_shrink, NULL);
+          connector_deleted = d_true;
+          break;
+        }
+    if (connector_deleted)
+      --entries;
+  }
+  return self;
+}
 d_define_method_override(connector_factory, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event) {
   d_using(connector_factory);
   t_boolean changed = d_false;
@@ -138,6 +162,7 @@ d_define_method_override(connector_factory, event)(struct s_object *self, struct
        * - left click (drop the line where we are, store it into the array of connector and removes the active connector)
        * - right click (removes the active connector)
        * Anyway, before doing anything, we need to update the destination of the active_connector using the current position of the mouse
+       * in order for the line to be correctly displayed in the screen
        */
       d_call(connector_factory_attributes->active_connector, m_connector_set_destination, (double)mouse_x, (double)mouse_y,
           connector_factory_attributes->destination_link);
@@ -145,11 +170,10 @@ d_define_method_override(connector_factory, event)(struct s_object *self, struct
         t_boolean reset_entry = d_false;
         if ((connector_factory_attributes->approve_drop) && (connector_factory_attributes->destination_link)) {
           if (current_event->button.button == SDL_BUTTON_LEFT) {
-            d_call(connector_factory_attributes->active_connector, m_connector_set_destination, connector_factory_attributes->destination_link->final_position_x,
-                connector_factory_attributes->destination_link->final_position_y, connector_factory_attributes->destination_link);
+            d_call(connector_factory_attributes->active_connector, m_connector_set_destination, 
+                connector_factory_attributes->destination_link->final_position_x, connector_factory_attributes->destination_link->final_position_y, 
+                connector_factory_attributes->destination_link);
             d_call(connector_factory_attributes->array_of_connectors, m_array_push, connector_factory_attributes->active_connector);
-            connector_factory_attributes->source_link->is_connected = d_true;
-            connector_factory_attributes->destination_link->is_connected = d_true;
           }
           reset_entry = d_true;
         } else if (current_event->button.button == SDL_BUTTON_RIGHT)
@@ -163,13 +187,34 @@ d_define_method_override(connector_factory, event)(struct s_object *self, struct
         }
       }
       changed = d_true;
-    } else if ((current_event->type == SDL_MOUSEBUTTONDOWN) && (current_event->button.button == SDL_BUTTON_LEFT)) {
+    } else if (current_event->type == SDL_MOUSEBUTTONDOWN) {
       if ((connector_factory_attributes->approve_drop) && (connector_factory_attributes->source_link)) {
-        connector_factory_attributes->active_connector =
-          f_connector_new(d_new(connector), connector_factory_attributes->drawable, connector_factory_attributes->source_link->final_position_x,
-              connector_factory_attributes->source_link->final_position_y, connector_factory_attributes->source_link);
+        /* if approve_drop is active and source link is set, means that the same event has been listen by a connectable and we have clicked on its linkable 
+         * point. In pratice, this means that we can drop a new connector where we are and that will be linked to a specific source_link connectable_link 
+         * owned by a connectable 
+         */
+        if (current_event->button.button == SDL_BUTTON_LEFT) {
+          connector_factory_attributes->active_connector =
+            f_connector_new(d_new(connector), connector_factory_attributes->drawable, connector_factory_attributes->source_link->final_position_x,
+                connector_factory_attributes->source_link->final_position_y, connector_factory_attributes->source_link);
+          changed = d_true;
+        }
+      } else if (current_event->button.button == SDL_BUTTON_RIGHT) {
+        /* if we are here, means that we just have right-clicked on the screen and we don't have any active link. We might want to delete the first
+         * link that is next the mouse and that is currently active
+         */
+        struct s_object *current_connector;
+        size_t elements;
+        d_call(connector_factory_attributes->array_of_connectors, m_array_size, &elements);
+        for (size_t index = 0; index < elements; ++index)
+          if ((current_connector = d_call(connector_factory_attributes->array_of_connectors, m_array_get, index)))
+            if (d_call(current_connector, m_connector_is_over, (int)mouse_x, (int)mouse_y)) {
+              d_call(current_connector, m_connector_destroy_links, NULL);
+              d_call(connector_factory_attributes->array_of_connectors, m_array_remove, index);
+              d_call(connector_factory_attributes->array_of_connectors, m_array_shrink, NULL);
+              break;
+            }
       }
-      changed = d_true;
     }
   }
   d_cast_return(((changed) ? e_eventable_status_captured : e_eventable_status_ignored));
@@ -178,9 +223,9 @@ d_define_method_override(connector_factory, draw)(struct s_object *self, struct 
   d_using(connector_factory);
   struct s_environment_attributes *environment_attributes = d_cast(environment, environment);
   struct s_camera_attributes *camera_attributes = d_cast(environment_attributes->current_camera, camera);
-  struct s_object *label;
   if (connector_factory_attributes->drawable) {
     struct s_object *current_connector;
+    d_call(self, m_connector_factory_check_snapped, NULL);
     if (connector_factory_attributes->active_connector) {
       if ((d_call(connector_factory_attributes->active_connector, m_drawable_normalize_scale, camera_attributes->scene_reference_w,
               camera_attributes->scene_reference_h, camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x,
@@ -208,6 +253,7 @@ d_define_class(connector_factory) {d_hook_method(connector_factory, e_flag_publi
   d_hook_method(connector_factory, e_flag_public, get_connector_with_destination),
   d_hook_method(connector_factory, e_flag_private, is_reachable),
   d_hook_method(connector_factory, e_flag_public, get_connector_for),
+  d_hook_method(connector_factory, e_flag_public, check_snapped),
   d_hook_method_override(connector_factory, e_flag_public, eventable, event),
   d_hook_method_override(connector_factory, e_flag_public, drawable, draw),
   d_hook_delete(connector_factory),

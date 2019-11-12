@@ -34,6 +34,7 @@ d_declare_class(packet_factory) {
   struct s_object *connectable_factory;
   struct s_object *connector_factory;
   struct s_object *array_packets_traveling, *array_packets_arrived;
+  unsigned int orphan_packets;
   struct s_list statistics_generated;
 } d_declare_class_tail(packet_factory);
 struct s_packet_factory_attributes *p_packet_factory_alloc(struct s_object *self);
@@ -42,6 +43,7 @@ extern struct s_object *f_packet_factory_new(struct s_object *self, struct s_obj
 d_declare_method(packet_factory, create_packet)(struct s_object *self, struct s_object *environment, const char *unique_code_source,
     const char *unique_code_destination, struct s_connectable_link *ingoing_connectable_link);
 d_declare_method(packet_factory, forward_packet)(struct s_object *self, struct s_object *environment, struct s_object *packet);
+d_declare_method(packet_factory, sort_packet)(struct s_object *self);
 d_declare_method(packet_factory, update_connector_weights)(struct s_object *self);
 d_declare_method(packet_factory, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event);
 d_declare_method(packet_factory, draw)(struct s_object *self, struct s_object *environment);

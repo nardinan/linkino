@@ -35,7 +35,6 @@ struct s_connectable_link { d_list_node_head;
   char label[d_string_buffer_size], unique_code[d_connectable_code_size];
   struct s_object *connectable;
   struct s_object *connector;
-  t_boolean is_connected;
 } s_connectable_link;
 d_declare_class(connectable) {
   struct s_attributes head;

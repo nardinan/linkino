@@ -55,6 +55,7 @@ d_define_method(packet_factory, create_packet)(struct s_object *self, struct s_o
             connector_attributes->destination_link:connector_attributes->source_link);
         d_call(link, m_packet_set_traveling, connector, ingoing_connectable_link, outgoing_connectable_link, unique_code_source, unique_code_destination);
         d_call(packet_factory_attributes->array_packets_traveling, m_array_push, link);
+        d_delete(link);
       }
     }
   }
@@ -63,7 +64,7 @@ d_define_method(packet_factory, create_packet)(struct s_object *self, struct s_o
 d_define_method(packet_factory, forward_packet)(struct s_object *self, struct s_object *environment, struct s_object *packet) {
   d_using(packet_factory);
   struct s_object *result = NULL;
-  if ((!(intptr_t)d_call(packet, m_packet_is_arrived_to_its_destination, NULL)) && ((intptr_t)d_call(packet, m_packet_is_arrived_to_its_hop, NULL))) {
+  if ((intptr_t)d_call(packet, m_packet_is_arrived_to_its_hop, NULL)) {
     struct s_packet_attributes *packet_attributes = d_cast(packet, packet);
     /* OK, the packet is arrived to its next HOP but, what does this mean? It means that final destination is reached or that we have just to 
      * forward it to the next hop? */
@@ -91,6 +92,44 @@ d_define_method(packet_factory, forward_packet)(struct s_object *self, struct s_
       d_call(packet, m_packet_set_traveling_complete, NULL);
   }
   return result;
+}
+d_define_method(packet_factory, sort_packet)(struct s_object *self) {
+  d_using(packet_factory);
+  t_boolean packet_deleted = d_true;
+  size_t entries;
+  d_call(packet_factory_attributes->array_packets_traveling, m_array_size, &entries);
+  while (packet_deleted) {
+    struct s_object *current_packet;
+    packet_deleted = d_false;
+    for (size_t index = 0; index < entries; ++index) {
+      if ((current_packet = d_call(packet_factory_attributes->array_packets_traveling, m_array_get, index))) {
+        struct s_packet_attributes *packet_attributes = d_cast(current_packet, packet);
+        if ((!packet_attributes->ingoing_connectable_link) ||
+            (!packet_attributes->ingoing_connectable_link->connector) ||
+            (!packet_attributes->outgoing_connectable_link) ||
+            (!packet_attributes->outgoing_connectable_link->connector)) {
+          /* the packet is an orphan. What a pity! */
+          printf("PACKET LOST (from %s to %s)\n", packet_attributes->unique_initial_source, packet_attributes->unique_final_destination);
+          ++(packet_factory_attributes->orphan_packets);
+          d_call(packet_factory_attributes->array_packets_traveling, m_array_remove, index);
+          d_call(packet_factory_attributes->array_packets_traveling, m_array_shrink, NULL);
+          packet_deleted = d_true;
+          break;
+        } else if ((intptr_t)d_call(current_packet, m_packet_is_arrived_to_its_destination, NULL)) {
+          /* the packet is arrived to its destination, we need then to move it to another array */
+          printf("PACKET ARRIVED (from %s to %s)\n", packet_attributes->unique_initial_source, packet_attributes->unique_final_destination);
+          d_call(packet_factory_attributes->array_packets_arrived, m_array_push, current_packet);
+          d_call(packet_factory_attributes->array_packets_traveling, m_array_remove, index);
+          d_call(packet_factory_attributes->array_packets_traveling, m_array_shrink, NULL);
+          packet_deleted = d_true;
+          break;
+        }
+      }
+    }
+    if (packet_deleted)
+      --entries;
+  }
+  return self;
 }
 d_define_method(packet_factory, update_connector_weights)(struct s_object *self) {
   d_using(packet_factory);
@@ -132,16 +171,16 @@ d_define_method_override(packet_factory, draw)(struct s_object *self, struct s_o
   struct s_object *current_packet;
   struct s_connectable_link *source_connectable_link;
   d_call(self, m_packet_factory_update_connector_weights, NULL);
+  d_call(self, m_packet_factory_sort_packet, NULL);
   d_array_foreach(packet_factory_attributes->array_packets_traveling, current_packet)
-    if (!((intptr_t)d_call(current_packet, m_packet_is_arrived_to_its_destination, NULL)))
-      if (!((intptr_t)d_call(current_packet, m_packet_is_arrived_to_its_hop, NULL))) {
-        d_call(current_packet, m_packet_move_by, d_packet_factory_steps);
-        if ((d_call(current_packet, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
-                camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
-                camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
-          while (((intptr_t)d_call(current_packet, m_drawable_draw, environment)) == d_drawable_return_continue);
-      } else
-        d_call(self, m_packet_factory_forward_packet, environment, current_packet);
+    if (!((intptr_t)d_call(current_packet, m_packet_is_arrived_to_its_hop, NULL))) {
+      d_call(current_packet, m_packet_move_by, d_packet_factory_steps);
+      if ((d_call(current_packet, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
+              camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
+              camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
+        while (((intptr_t)d_call(current_packet, m_drawable_draw, environment)) == d_drawable_return_continue);
+    } else
+      d_call(self, m_packet_factory_forward_packet, environment, current_packet);
   while ((source_connectable_link = (struct s_connectable_link *)d_call(packet_factory_attributes->connectable_factory, 
           m_connectable_factory_is_traffic_generation_required, NULL))) {
     struct s_connectable_factory_attributes *connectable_factory_attributes = d_cast(packet_factory_attributes->connectable_factory, connectable_factory);
@@ -171,10 +210,11 @@ d_define_method_override(packet_factory, draw)(struct s_object *self, struct s_o
       struct s_connectable_link *next_step_link, *current_connectable_link;
       unsigned int hops;
       d_foreach(&(connectable_attributes->list_connection_nodes), current_connectable_link, struct s_connectable_link)
-        if ((next_step_link = (struct s_connectable_link *)d_call(packet_factory_attributes->connector_factory, m_connector_factory_get_connector_for, 
-                source_connectable_link, NULL, connectable_attributes->unique_code, &hops)))
-          /* yeah, this is reachable and 'next_step_link' contains the next node we have to reach to join the final target */
-          break;
+        if (current_connectable_link->connector)
+          if ((next_step_link = (struct s_connectable_link *)d_call(packet_factory_attributes->connector_factory, m_connector_factory_get_connector_for, 
+                  source_connectable_link, NULL, connectable_attributes->unique_code, &hops)))
+            /* yeah, this is reachable and 'next_step_link' contains the next node we have to reach to join the final target */
+            break;
       if (next_step_link)
         d_call(self, m_packet_factory_create_packet, environment, source_connectable_link->unique_code, connectable_attributes->unique_code,
             source_connectable_link);
@@ -198,6 +238,7 @@ d_define_method(packet_factory, delete)(struct s_object *self, struct s_packet_f
 }
 d_define_class(packet_factory) {d_hook_method(packet_factory, e_flag_public, create_packet),
   d_hook_method(packet_factory, e_flag_public, forward_packet),
+  d_hook_method(packet_factory, e_flag_public, sort_packet),
   d_hook_method(packet_factory, e_flag_public, update_connector_weights),
   d_hook_method_override(packet_factory, e_flag_public, eventable, event),
   d_hook_method_override(packet_factory, e_flag_public, drawable, draw),

@@ -121,8 +121,10 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
     d_array_foreach(connectable_factory_attributes->array_connectable_instances, current_connectable)
       if (((intptr_t)d_call(current_connectable, m_eventable_event, environment, current_event)) == e_eventable_status_captured) {
         struct s_connectable_link *connection_node;
-        if ((connection_node = d_call(current_connectable, m_connectable_get_selected_node, NULL)))
+        if ((connection_node = d_call(current_connectable, m_connectable_get_selected_node, NULL))) {
           connectable_factory_attributes->active_node = connection_node;
+          break;
+        }
       }
   }
   d_foreach(&(connectable_factory_attributes->list_templates), current_template, struct s_connectable_factory_template)

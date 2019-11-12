@@ -25,6 +25,7 @@ d_declare_class(connector_factory) {
   struct s_object *array_of_connectors;
   struct s_object *drawable;
   t_boolean approve_drop;
+  unsigned int snapped_connectors;
   struct s_connectable_link *source_link, *destination_link;
 } d_declare_class_tail(connector_factory);
 struct s_connector_factory_attributes *p_connector_factory_alloc(struct s_object *self);
@@ -36,6 +37,7 @@ d_declare_method(connector_factory, is_reachable)(struct s_object *self, struct 
     unsigned int *hops);
 d_declare_method(connector_factory, get_connector_for)(struct s_object *self, struct s_connectable_link *ingoing_link, 
     struct s_connectable_link *previous_ingoing_link, const char *destination, unsigned int *hops);
+d_declare_method(connector_factory, check_snapped)(struct s_object *self);
 d_declare_method(connector_factory, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event);
 d_declare_method(connector_factory, draw)(struct s_object *self, struct s_object *environment);
 d_declare_method(connector_factory, delete)(struct s_object *self, struct s_connector_factory_attributes *attributes);

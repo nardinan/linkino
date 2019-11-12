@@ -42,6 +42,8 @@ d_define_method(packet, set_traveling)(struct s_object *self, struct s_object *c
   d_using(packet);
   struct s_connector_attributes *connector_attributes = d_cast(connector_traveling, connector);
   packet_attributes->traveling = d_true;
+  if (packet_attributes->connector_traveling)
+    d_delete(packet_attributes->connector_traveling);
   packet_attributes->connector_traveling = d_retain(connector_traveling);
   packet_attributes->ingoing_connectable_link = ingoing_connectable_link;
   packet_attributes->outgoing_connectable_link = outgoing_connectable_link;
@@ -84,8 +86,6 @@ d_define_method(packet, set_traveling_complete)(struct s_object *self) {
   d_using(packet);
   packet_attributes->time_arrived = time(NULL);
   packet_attributes->at_destination = d_true;
-  printf("packet from %s to %s arrived in %ld seconds with %d hops\n", packet_attributes->unique_initial_source, packet_attributes->unique_final_destination,
-      (packet_attributes->time_arrived - packet_attributes->time_launched), packet_attributes->hops_performed);
   return self;
 }
 d_define_method(packet, set_analyzing)(struct s_object *self, t_boolean analyzing) {
@@ -148,6 +148,8 @@ d_define_method_override(packet, draw)(struct s_object *self, struct s_object *e
   d_cast_return(d_drawable_return_last);
 }
 d_define_method(packet, delete)(struct s_object *self, struct s_packet_attributes *attributes) {
+  if (attributes->connector_traveling)
+    d_delete(attributes->connector_traveling);
   d_delete(attributes->drawable_icon);
   d_delete(attributes->drawable_background);
   d_delete(attributes->ui_label_content);
