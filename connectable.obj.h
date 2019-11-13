@@ -51,6 +51,7 @@ d_declare_method(connectable, set_generate_traffic)(struct s_object *self, t_boo
 d_declare_method(connectable, add_connection_point)(struct s_object *self, double offset_x, double offset_y, const char *label);
 d_declare_method(connectable, get_selected_node)(struct s_object *self);
 d_declare_method(connectable, is_traffic_generation_required)(struct s_object *self);
+d_declare_method(connectable, is_over)(struct s_object *self, int mouse_x, int mouse_y);
 d_declare_method(connectable, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event);
 d_declare_method(connectable, draw)(struct s_object *self, struct s_object *environment);
 d_declare_method(connectable, delete)(struct s_object *self, struct s_connectable_attributes *attributes);

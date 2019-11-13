@@ -51,8 +51,8 @@ d_define_method(connectable_factory, add_connectable_template)(struct s_object *
       current_template->generate_traffic = generate_traffic;
       current_template->connections = connections;
       if ((current_template->uiable_button =
-             d_call(connectable_factory_attributes->ui_factory, m_ui_factory_new_button, d_ui_factory_default_font_id, d_ui_factory_default_font_style,
-                    current_template->title))) {
+            d_call(connectable_factory_attributes->ui_factory, m_ui_factory_new_button, d_ui_factory_default_font_id, d_ui_factory_default_font_style,
+              current_template->title))) {
         d_call(current_template->uiable_button, m_emitter_embed_parameter, "clicked_left", self);
         d_call(current_template->uiable_button, m_emitter_embed_parameter, "clicked_left", current_template);
         d_call(current_template->uiable_button, m_emitter_embed_function, "clicked_left", p_connectable_factory_left_click);
@@ -66,6 +66,11 @@ d_define_method(connectable_factory, add_connectable_template)(struct s_object *
     } else
       d_die(d_error_malloc);
   }
+  return self;
+}
+d_define_method(connectable_factory, set_connector_selected)(struct s_object *self, t_boolean selected) {
+  d_using(connectable_factory);
+  connectable_factory_attributes->connector_selected = selected;
   return self;
 }
 d_define_method(connectable_factory, get_selected_node)(struct s_object *self) {
@@ -95,11 +100,25 @@ d_define_method(connectable_factory, click_received)(struct s_object *self, stru
 d_define_method_override(connectable_factory, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event) {
   d_using(connectable_factory);
   struct s_object *current_connectable;
-  struct s_connectable_factory_template *current_template;
-  char buffer[d_string_buffer_size];
   t_boolean changed = d_false;
-  if (connectable_factory_attributes->active_template) {
+  /* OK we probably have different things to do, but some of these things cannot be done while a connector is active. I will list here the things 
+   * and I will make them D as doable while a connector is active or N as not doable while connector is active.
+   * - (D) if a connectable is active, we need to make it following the mouse and listen in order to drop it where click is received
+   * - (D) if a template is active, we need to make it following the mouse and listen in order to drop it where click is received 
+   * - (D) if a link of a connectable already present is clicked, we need to select it as active_node (however, this specific action should return 
+   *       a failed event in order to forward to the lower components (packet and connector) the event.
+   * - (N) we need to check if a button is clicked to create a new template
+   * - (N) we need to check if we are clicking over an already dropped connectable and move it around (active_connectable)
+   *
+   * Remember that active connectable has always the priority over active_template.
+   */
+  if (connectable_factory_attributes->active_connectable) {
+    if ((current_event->type == SDL_MOUSEBUTTONDOWN) && (current_event->button.button == SDL_BUTTON_LEFT))
+      connectable_factory_attributes->active_connectable = NULL;
+    changed = d_true;
+  } else if (connectable_factory_attributes->active_template) {
     if ((current_event->type == SDL_MOUSEBUTTONDOWN) && (current_event->button.button == SDL_BUTTON_LEFT)) {
+      char buffer[d_string_buffer_size];
       /* we generate a random string that will be used to identify univocally the instance */
       /* we drop the active template and we create a new connectable that we push into the array */
       struct s_object *connectable =
@@ -107,11 +126,11 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
             connectable_factory_attributes->environment, ((connectable_factory_attributes->active_template->generate_traffic)?d_true:d_false));
       d_call(connectable, m_connectable_set_generate_traffic, connectable_factory_attributes->active_template->generate_traffic);
       d_call(connectable, m_drawable_set_position, connectable_factory_attributes->active_template->position_x,
-             connectable_factory_attributes->active_template->position_y);
+          connectable_factory_attributes->active_template->position_y);
       for (size_t index_offset = 0; index_offset < connectable_factory_attributes->active_template->connections; ++index_offset) {
         snprintf(buffer, d_string_buffer_size, "%c", (char)(((char)'A') + index_offset));
         d_call(connectable, m_connectable_add_connection_point, connectable_factory_attributes->active_template->offsets_x[index_offset],
-               connectable_factory_attributes->active_template->offsets_y[index_offset], buffer);
+            connectable_factory_attributes->active_template->offsets_y[index_offset], buffer);
       }
       d_call(connectable_factory_attributes->array_connectable_instances, m_array_push, connectable);
       connectable_factory_attributes->active_template = NULL;
@@ -126,12 +145,31 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
           break;
         }
       }
+    /* if a node has been activated, we can ignore the rest. Moreover, since we have to forward the event to the lower event components, we 
+     * need to be sure that the 'changed' flag is false
+     */
+    if (!connectable_factory_attributes->active_node)
+      if ((!connectable_factory_attributes->connector_selected) && (!changed)) {
+        struct s_connectable_factory_template *current_template;
+        d_foreach(&(connectable_factory_attributes->list_templates), current_template, struct s_connectable_factory_template)
+          d_call_owner(current_template->uiable_button, uiable, m_eventable_event, environment, current_event);
+        /* we need to consider what happens if the button is clicked (so we have an active template) */
+        if (!connectable_factory_attributes->active_template) {
+          if (current_event->type == SDL_MOUSEBUTTONDOWN) {
+            int mouse_x, mouse_y;
+            d_call(environment, m_environment_get_mouse_normalized, "draw_camera", &mouse_x, &mouse_y);
+            d_array_foreach(connectable_factory_attributes->array_connectable_instances, current_connectable)
+              if (d_call(current_connectable, m_connectable_is_over, mouse_x, mouse_y))
+                if (current_event->button.button == SDL_BUTTON_LEFT) {
+                  connectable_factory_attributes->active_connectable = current_connectable;
+                  changed = d_true;
+                  break;
+                }
+          }
+        } else
+          changed = d_true;
+      }
   }
-  d_foreach(&(connectable_factory_attributes->list_templates), current_template, struct s_connectable_factory_template)
-    d_call_owner(current_template->uiable_button, uiable, m_eventable_event, environment, current_event);
-  /* we need to consider what happens if the button is clicked (so we have an active template) */
-  if (connectable_factory_attributes->active_template)
-    changed = d_true;
   d_cast_return(((changed) ? e_eventable_status_captured : e_eventable_status_ignored));
 }
 d_define_method_override(connectable_factory, draw)(struct s_object *self, struct s_object *environment) {
@@ -140,35 +178,43 @@ d_define_method_override(connectable_factory, draw)(struct s_object *self, struc
   struct s_camera_attributes *camera_attributes = d_cast(environment_attributes->current_camera, camera);
   struct s_connectable_factory_template *current_template;
   struct s_object *current_connectable;
-  double position_y = 0, position_x = (camera_attributes->scene_reference_w - d_connectable_factory_button_width - 1);
+  double position_y = 0, position_x = (camera_attributes->scene_reference_w - d_connectable_factory_button_width - 1), image_width, image_height;
+  int mouse_x, mouse_y;
+  d_call(environment, m_environment_get_mouse_normalized, "draw_camera", &mouse_x, &mouse_y);
+  if (connectable_factory_attributes->active_connectable) {
+    d_call(connectable_factory_attributes->active_connectable, m_drawable_get_dimension, &image_width, &image_height);
+    d_call(connectable_factory_attributes->active_connectable, m_drawable_set_position, (double)(mouse_x - (image_width / 2.0)), 
+        (double)(mouse_y - (image_width / 2.0)));
+  }
   d_foreach(&(connectable_factory_attributes->list_templates), current_template, struct s_connectable_factory_template) {
     d_call(current_template->uiable_button, m_drawable_set_position, position_x, position_y);
     if ((d_call(current_template->uiable_button, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
-                camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
-                camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
+            camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
+            camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
       while (((intptr_t)d_call(current_template->uiable_button, m_drawable_draw, environment)) == d_drawable_return_continue);
     position_y += (d_connectable_factory_button_height + 1);
   }
   d_array_foreach(connectable_factory_attributes->array_connectable_instances, current_connectable) {
+    if (connectable_factory_attributes->active_connectable == current_connectable)
+      d_call(current_connectable, m_drawable_set_maskA, (unsigned int)d_connectable_factory_alpha);
+    else
+      d_call(current_connectable, m_drawable_set_maskA, (unsigned int)255);
     if ((d_call(current_connectable, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
-                camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
-                camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
+            camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
+            camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
       while (((intptr_t)d_call(current_connectable, m_drawable_draw, environment)) == d_drawable_return_continue);
   }
   /* we have something selected, so we need to keep the icon floating around following the mouse */
   if (connectable_factory_attributes->active_template) {
-    double icon_width, icon_height;
-    int mouse_x, mouse_y;
-    d_call(environment, m_environment_get_mouse_normalized, "draw_camera", &mouse_x, &mouse_y);
-    d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_get_dimension, &icon_width, &icon_height);
-    connectable_factory_attributes->active_template->position_x = mouse_x - (icon_width / 2.0);
-    connectable_factory_attributes->active_template->position_y = mouse_y - (icon_height / 2.0);
+    d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_get_dimension, &image_width, &image_height);
+    connectable_factory_attributes->active_template->position_x = mouse_x - (image_width / 2.0);
+    connectable_factory_attributes->active_template->position_y = mouse_y - (image_height / 2.0);
     d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_set_position, connectable_factory_attributes->active_template->position_x,
-           connectable_factory_attributes->active_template->position_y);
+        connectable_factory_attributes->active_template->position_y);
     d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_set_maskA, d_connectable_factory_alpha);
     if ((d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_normalize_scale, camera_attributes->scene_reference_w,
-                camera_attributes->scene_reference_h, camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x,
-                camera_attributes->scene_center_y, camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
+            camera_attributes->scene_reference_h, camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x,
+            camera_attributes->scene_center_y, camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
       while (((intptr_t)d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_draw, environment)) == d_drawable_return_continue);
   }
   d_cast_return(d_drawable_return_last);
@@ -184,10 +230,11 @@ d_define_method(connectable_factory, delete)(struct s_object *self, struct s_con
   return NULL;
 }
 d_define_class(connectable_factory) {d_hook_method(connectable_factory, e_flag_public, add_connectable_template),
-                                     d_hook_method(connectable_factory, e_flag_public, get_selected_node),
-                                     d_hook_method(connectable_factory, e_flag_public, is_traffic_generation_required),
-                                     d_hook_method(connectable_factory, e_flag_public, click_received),
-                                     d_hook_method_override(connectable_factory, e_flag_public, eventable, event),
-                                     d_hook_method_override(connectable_factory, e_flag_public, drawable, draw),
-                                     d_hook_delete(connectable_factory),
-                                     d_hook_method_tail};
+  d_hook_method(connectable_factory, e_flag_public, set_connector_selected),
+  d_hook_method(connectable_factory, e_flag_public, get_selected_node),
+  d_hook_method(connectable_factory, e_flag_public, is_traffic_generation_required),
+  d_hook_method(connectable_factory, e_flag_public, click_received),
+  d_hook_method_override(connectable_factory, e_flag_public, eventable, event),
+  d_hook_method_override(connectable_factory, e_flag_public, drawable, draw),
+  d_hook_delete(connectable_factory),
+  d_hook_method_tail};

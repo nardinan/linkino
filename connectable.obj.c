@@ -210,20 +210,29 @@ d_define_method(connectable, is_traffic_generation_required)(struct s_object *se
   }
   d_cast_return(result);
 }
+d_define_method(connectable, is_over)(struct s_object *self, int mouse_x, int mouse_y) {
+  d_using(connectable);
+  struct s_drawable_attributes *drawable_attributes = d_cast(self, drawable);
+  double position_x, position_y, width, height;
+  struct s_object *result = NULL;
+  d_call(self, m_drawable_get_position, &position_x, &position_y);
+  d_call(self, m_drawable_get_dimension, &width, &height);
+  if (((mouse_x > position_x) && (mouse_x < position_x + width)) && 
+      ((mouse_y > position_y) && (mouse_y < position_y + height)))
+    result = self;
+  return result;
+}
 d_define_method_override(connectable, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event) {
   d_using(connectable);
   struct s_connectable_link *connection_node;
   struct s_drawable_attributes *drawable_attributes = d_cast(self, drawable);
-  t_boolean changed = d_false;
   double position_x, position_y;
   int mouse_x, mouse_y;
+  t_boolean changed = d_false;
   d_call(environment, m_environment_get_mouse_normalized, "draw_camera", &mouse_x, &mouse_y);
   d_call(&(drawable_attributes->point_destination), m_point_get, &position_x, &position_y);
   connectable_attributes->draw_rectangle = d_false;
   d_foreach(&(connectable_attributes->list_connection_nodes), connection_node, struct s_connectable_link) {
-    /* update the position of the nodes in respect of the final position of the connectable */
-    connection_node->final_position_x = (connection_node->offset_x + position_x + (connection_node->width / 2.0));
-    connection_node->final_position_y = (connection_node->offset_y + position_y + (connection_node->height / 2.0));
     if ((mouse_x >= (position_x + connection_node->offset_x)) && (mouse_x <= (position_x + connection_node->offset_x + connection_node->width)) &&
         (mouse_y >= (position_y + connection_node->offset_y)) && (mouse_y <= (position_y + connection_node->offset_y + connection_node->height))) {
       if ((current_event->type == SDL_MOUSEBUTTONDOWN) && (current_event->button.button == SDL_BUTTON_LEFT)) {
@@ -247,8 +256,18 @@ d_define_method_override(connectable, event)(struct s_object *self, struct s_obj
 d_define_method_override(connectable, draw)(struct s_object *self, struct s_object *environment) {
   d_using(connectable);
   struct s_environment_attributes *environment_attributes = d_cast(environment, environment);
+  struct s_drawable_attributes *drawable_attributes = d_cast(self, drawable);
   struct s_camera_attributes *camera_attributes;
+  struct s_connectable_link *connection_node;
+  double position_x, position_y;
   int result = (intptr_t)d_call_owner(self, bitmap, m_drawable_draw, environment); /* recall the father's draw method */
+  d_call(&(drawable_attributes->point_destination), m_point_get, &position_x, &position_y);
+  d_foreach(&(connectable_attributes->list_connection_nodes), connection_node, struct s_connectable_link) {
+    /* update the position of the nodes in respect of the final position of the connectable */
+    connection_node->final_position_x = (connection_node->offset_x + position_x + (connection_node->width / 2.0));
+    connection_node->final_position_y = (connection_node->offset_y + position_y + (connection_node->height / 2.0));
+  }
+  /* we need to update the position of the links of the node in respect of its position */
   if ((camera_attributes = d_cast(environment_attributes->current_camera, camera))) {
     if (connectable_attributes->draw_rectangle) {
       if (!connectable_attributes->normalized) {
@@ -284,6 +303,7 @@ d_define_class(connectable) {d_hook_method(connectable, e_flag_public, set_gener
   d_hook_method(connectable, e_flag_public, add_connection_point),
   d_hook_method(connectable, e_flag_public, is_traffic_generation_required),
   d_hook_method(connectable, e_flag_public, get_selected_node),
+  d_hook_method(connectable, e_flag_public, is_over),
   d_hook_method_override(connectable, e_flag_public, eventable, event),
   d_hook_method_override(connectable, e_flag_public, drawable, draw),
   d_hook_delete(connectable),

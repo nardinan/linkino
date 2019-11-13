@@ -159,6 +159,13 @@ d_define_method_override(connector, draw)(struct s_object *self, struct s_object
   struct s_environment_attributes *environment_attributes = d_cast(environment, environment);
   struct s_camera_attributes *camera_attributes = d_cast(environment_attributes->current_camera, camera);
   memset(connector_attributes->segments, 0, (sizeof(struct s_connector_segment) * d_connector_maximum_segments));
+  if ((connector_attributes->source_link) && (connector_attributes->destination_link)) {
+    /* we want to update the source and the destination of the connector accordingly to the position of these elements */
+    d_call(connector_attributes->starting_point, m_point_set, connector_attributes->source_link->final_position_x, 
+        connector_attributes->source_link->final_position_y);
+    d_call(connector_attributes->destination_point, m_point_set, connector_attributes->destination_link->final_position_x,
+        connector_attributes->destination_link->final_position_y);
+  }
   /* we can calculate the weight of the connector by checking he number of elements that generate traffic, and the number of packets currently 
    * traveling in the connector
    */
