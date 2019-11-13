@@ -40,6 +40,10 @@ d_define_method(connector, set_starting)(struct s_object *self, double starting_
   d_using(connector);
   if (connector_attributes->drawable)
     d_call(connector_attributes->starting_point, m_point_set, starting_x, starting_y);
+  if ((connector_attributes->source_link) && (connector_attributes->source_link->connector)) {
+    d_delete(connector_attributes->source_link->connector);
+    connector_attributes->source_link->connector = NULL;
+  }
   connector_attributes->source_link = link;
   return self;
 }
@@ -48,9 +52,17 @@ d_define_method(connector, set_destination)(struct s_object *self, double destin
   if (connector_attributes->drawable) {
     d_call(connector_attributes->destination_point, m_point_set, destination_x, destination_y);
   }
+  if ((connector_attributes->destination_link) && (connector_attributes->destination_link->connector)) {
+    d_delete(connector_attributes->destination_link->connector);
+    connector_attributes->destination_link->connector = NULL;
+  }
   connector_attributes->destination_link = link;
   if ((connector_attributes->source_link) && (connector_attributes->destination_link)) {
+    if (connector_attributes->source_link->connector)
+      d_delete(connector_attributes->source_link->connector);
     connector_attributes->source_link->connector = d_retain(self);
+    if (connector_attributes->destination_link->connector)
+      d_delete(connector_attributes->destination_link->connector);
     connector_attributes->destination_link->connector = d_retain(self);
   }
   return self;
@@ -273,14 +285,15 @@ d_define_method(connector, destroy_links)(struct s_object *self) {
     d_delete(connector_attributes->destination_link->connector);
     connector_attributes->destination_link->connector = NULL;
   }
+  connector_attributes->destination_link = NULL;
   if ((connector_attributes->source_link) && (connector_attributes->source_link->connector)) {
     d_delete(connector_attributes->source_link->connector);
     connector_attributes->source_link->connector = NULL;
   }
+  connector_attributes->source_link = NULL;
   return self;
 }
 d_define_method(connector, delete)(struct s_object *self, struct s_connector_attributes *attributes) {
-  printf("has been deleted\n");
   if ((attributes->destination_link) && (attributes->destination_link->connector)) {
     d_delete(attributes->destination_link->connector);
     attributes->destination_link->connector = NULL;

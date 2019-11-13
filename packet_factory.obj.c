@@ -117,7 +117,12 @@ d_define_method(packet_factory, sort_packet)(struct s_object *self) {
           break;
         } else if ((intptr_t)d_call(current_packet, m_packet_is_arrived_to_its_destination, NULL)) {
           /* the packet is arrived to its destination, we need then to move it to another array */
-          printf("PACKET ARRIVED (from %s to %s)\n", packet_attributes->unique_initial_source, packet_attributes->unique_final_destination);
+          printf("PACKET ARRIVED (from %s to %s) in %zu seconds\n", packet_attributes->unique_initial_source, packet_attributes->unique_final_destination,
+              (packet_attributes->time_arrived - packet_attributes->time_launched));
+          if (packet_attributes->connector_traveling) {
+            d_delete(packet_attributes->connector_traveling);
+            packet_attributes->connector_traveling = NULL;
+          }
           d_call(packet_factory_attributes->array_packets_arrived, m_array_push, current_packet);
           d_call(packet_factory_attributes->array_packets_traveling, m_array_remove, index);
           d_call(packet_factory_attributes->array_packets_traveling, m_array_shrink, NULL);

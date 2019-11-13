@@ -137,8 +137,10 @@ d_define_method(connector_factory, check_snapped)(struct s_object *self) {
     for (size_t index = 0; index < entries; ++index)
       if ((current_connector = d_call(connector_factory_attributes->array_of_connectors, m_array_get, index)))
         if (d_call(current_connector, m_connector_is_snapped, NULL)) {
+          struct s_connector_attributes *connector_attributes = d_cast(current_connector, connector);
           /* the connector has been snapped! Damn! */
-          printf("ARC SNAPPED due to an overload\n");
+          printf("ARC between %s (link %s) and %s (link %s) SNAPPED due to an overload\n", connector_attributes->source_link->unique_code,
+              connector_attributes->source_link->label, connector_attributes->destination_link->unique_code, connector_attributes->destination_link->label);
           ++(connector_factory_attributes->snapped_connectors);
           d_call(current_connector, m_connector_destroy_links, NULL);
           d_call(connector_factory_attributes->array_of_connectors, m_array_remove, index);
