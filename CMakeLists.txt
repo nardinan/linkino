@@ -5,6 +5,9 @@ execute_process(COMMAND sdl2-config --cflags 2>/dev/null OUTPUT_VARIABLE STATUS_
 string(REGEX REPLACE "\n$" "" STATUS_SDL_LIBRARY "${STATUS_SDL_LIBRARY}")
 string(REGEX REPLACE "\n$" "" STATUS_SDL_INCLUDE "${STATUS_SDL_INCLUDE}")
 
+# Required for YCM
+set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+
 add_executable(linkino
         linkino.c
         loader.obj.c
