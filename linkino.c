@@ -62,7 +62,7 @@ int linkino_loop_call(struct s_object *environment) {
         offsets_y_firewall, (size_t)2, d_false);
       d_call(director, m_director_add_node, "computer", "PC STATION", "A basic PC required by every employee in the company", offsets_x_computer,
         offsets_y_computer, (size_t)1, d_true);
-      d_call(environment, m_environment_add_drawable, director, 5, e_environment_surface_primary);
+      d_call(environment, m_environment_add_drawable, director, (d_ui_factory_default_level), e_environment_surface_primary);
       v_initialized = d_true;
     }
   }

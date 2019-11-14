@@ -68,28 +68,30 @@ d_define_method(packet_factory, forward_packet)(struct s_object *self, struct s_
     struct s_packet_attributes *packet_attributes = d_cast(packet, packet);
     /* OK, the packet is arrived to its next HOP but, what does this mean? It means that final destination is reached or that we have just to 
      * forward it to the next hop? */
-    if ((f_string_strcmp(packet_attributes->unique_final_destination, packet_attributes->outgoing_connectable_link->unique_code) != 0)) {
-      struct s_connectable_attributes *connectable_attributes = d_cast(packet_attributes->outgoing_connectable_link->connectable, connectable);
-      struct s_connectable_link *current_connectable_link, *next_connectable_link, *selected_ingoing_connectable_link = NULL,
-                                *selected_outgoing_connectable_link = NULL;
-      unsigned int current_hops, selected_hops;
-      d_foreach(&(connectable_attributes->list_connection_nodes), current_connectable_link, struct s_connectable_link)
-        if ((next_connectable_link = (struct s_connectable_link *)d_call(packet_factory_attributes->connector_factory,
-                m_connector_factory_get_connector_for, current_connectable_link, packet_attributes->ingoing_connectable_link, 
-                packet_attributes->unique_final_destination, &current_hops)))
-          if ((!selected_ingoing_connectable_link) || (!selected_outgoing_connectable_link) || (current_hops < selected_hops)) {
-            struct s_connector_attributes *connector_attributes = d_cast(next_connectable_link->connector, connector);
-            selected_outgoing_connectable_link = next_connectable_link;
-            selected_ingoing_connectable_link = ((connector_attributes->source_link == selected_outgoing_connectable_link)?
-                connector_attributes->destination_link:connector_attributes->source_link);
-            selected_hops = current_hops;
-          }
-      if ((selected_ingoing_connectable_link) && (selected_outgoing_connectable_link) && 
-          (selected_ingoing_connectable_link->connector == selected_outgoing_connectable_link->connector))
-        d_call(packet, m_packet_set_traveling_next_hop, selected_ingoing_connectable_link->connector, selected_ingoing_connectable_link, 
-            selected_outgoing_connectable_link);
-    } else
-      d_call(packet, m_packet_set_traveling_complete, NULL);
+    if ((packet_attributes->ingoing_connectable_link) && (packet_attributes->outgoing_connectable_link)) {
+      if ((f_string_strcmp(packet_attributes->unique_final_destination, packet_attributes->outgoing_connectable_link->unique_code) != 0)) {
+        struct s_connectable_attributes *connectable_attributes = d_cast(packet_attributes->outgoing_connectable_link->connectable, connectable);
+        struct s_connectable_link *current_connectable_link, *next_connectable_link, *selected_ingoing_connectable_link = NULL,
+                                  *selected_outgoing_connectable_link = NULL;
+        unsigned int current_hops, selected_hops;
+        d_foreach(&(connectable_attributes->list_connection_nodes), current_connectable_link, struct s_connectable_link)
+          if ((next_connectable_link = (struct s_connectable_link *)d_call(packet_factory_attributes->connector_factory,
+                  m_connector_factory_get_connector_for, current_connectable_link, packet_attributes->ingoing_connectable_link, 
+                  packet_attributes->unique_final_destination, &current_hops)))
+            if ((!selected_ingoing_connectable_link) || (!selected_outgoing_connectable_link) || (current_hops < selected_hops)) {
+              struct s_connector_attributes *connector_attributes = d_cast(next_connectable_link->connector, connector);
+              selected_outgoing_connectable_link = next_connectable_link;
+              selected_ingoing_connectable_link = ((connector_attributes->source_link == selected_outgoing_connectable_link)?
+                  connector_attributes->destination_link:connector_attributes->source_link);
+              selected_hops = current_hops;
+            }
+        if ((selected_ingoing_connectable_link) && (selected_outgoing_connectable_link) && 
+            (selected_ingoing_connectable_link->connector == selected_outgoing_connectable_link->connector))
+          d_call(packet, m_packet_set_traveling_next_hop, selected_ingoing_connectable_link->connector, selected_ingoing_connectable_link, 
+              selected_outgoing_connectable_link);
+      } else
+        d_call(packet, m_packet_set_traveling_complete, NULL);
+    }
   }
   return result;
 }
@@ -156,9 +158,10 @@ d_define_method(packet_factory, update_connector_weights)(struct s_object *self)
         /* we need to check each packet associated to current_connector */
         d_array_foreach(packet_factory_attributes->array_packets_traveling, current_packet) {
           struct s_packet_attributes *packet_attributes = d_cast(current_packet, packet);
-          if (((packet_attributes->ingoing_connectable_link->connector == current_connector) ||
-                (packet_attributes->outgoing_connectable_link->connector == current_connector)) && (!packet_attributes->at_destination))
-            ++packets_running_on_it;
+          if ((packet_attributes->ingoing_connectable_link) && (packet_attributes->outgoing_connectable_link))
+            if (((packet_attributes->ingoing_connectable_link->connector == current_connector) ||
+                  (packet_attributes->outgoing_connectable_link->connector == current_connector)) && (!packet_attributes->at_destination))
+              ++packets_running_on_it;
         }
         d_call(current_connector, m_connector_set_weight, (double)((double)packets_running_on_it/(double)traffic_generators));
       }
@@ -212,7 +215,7 @@ d_define_method_override(packet_factory, draw)(struct s_object *self, struct s_o
     }
     if (destination_connectable) {
       struct s_connectable_attributes *connectable_attributes = d_cast(destination_connectable, connectable);
-      struct s_connectable_link *next_step_link, *current_connectable_link;
+      struct s_connectable_link *next_step_link = NULL, *current_connectable_link;
       unsigned int hops;
       d_foreach(&(connectable_attributes->list_connection_nodes), current_connectable_link, struct s_connectable_link)
         if (current_connectable_link->connector)

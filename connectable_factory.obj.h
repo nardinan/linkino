@@ -37,10 +37,12 @@ d_declare_class(connectable_factory) {
   struct s_connectable_factory_template *active_template;
   struct s_connectable_link *active_node;
   struct s_object *active_connectable;
+  struct s_object *delete_connectable;
   struct s_object *array_connectable_instances;
   struct s_object *environment;
   struct s_object *ui_factory;
-  t_boolean connector_selected;
+  struct s_object *ui_sell_confirmation;
+  t_boolean connector_selected, ui_sell_confirmation_visible;
 } d_declare_class_tail(connectable_factory);
 struct s_connectable_factory_attributes *p_connectable_factory_alloc(struct s_object *self);
 extern struct s_object *f_connectable_factory_new(struct s_object *self, struct s_object *ui_factory, struct s_object *environment);
@@ -49,7 +51,9 @@ d_declare_method(connectable_factory, add_connectable_template)(struct s_object 
 d_declare_method(connectable_factory, set_connector_selected)(struct s_object *self, t_boolean selected);
 d_declare_method(connectable_factory, get_selected_node)(struct s_object *self);
 d_declare_method(connectable_factory, is_traffic_generation_required)(struct s_object *self);
-d_declare_method(connectable_factory, click_received)(struct s_object *self, struct s_connectable_factory_template *template);
+d_declare_method(connectable_factory, click_received_create)(struct s_object *self, struct s_connectable_factory_template *template);
+d_declare_method(connectable_factory, click_received_sell)(struct s_object *self);
+d_declare_method(connectable_factory, click_received_cancel)(struct s_object *self);
 d_declare_method(connectable_factory, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event);
 d_declare_method(connectable_factory, draw)(struct s_object *self, struct s_object *environment);
 d_declare_method(connectable_factory, delete)(struct s_object *self, struct s_connectable_factory_attributes *attributes);

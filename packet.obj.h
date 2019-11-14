@@ -54,5 +54,6 @@ d_declare_method(packet, is_arrived_to_its_destination)(struct s_object *self);
 d_declare_method(packet, move_by)(struct s_object *self, double movement);
 d_declare_method(packet, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event);
 d_declare_method(packet, draw)(struct s_object *self, struct s_object *environment);
+d_declare_method(packet, destroy_links)(struct s_object *self);
 d_declare_method(packet, delete)(struct s_object *self, struct s_packet_attributes *attributes);
 #endif

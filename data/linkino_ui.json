@@ -1,0 +1,67 @@
+{
+  "root": [
+    {
+      "label": "confirmation_sell",
+      "position_x": 100,
+      "position_y": 100,
+      "components": [
+        {
+          "label": "title",
+          "kind": "label",
+          "font_id": 1,
+          "content": "Just to be sure ...",
+          "position_y": 20,
+          "alignment_x": 5,
+          "width": 380
+        },
+        {
+          "label": "message_line1",
+          "kind": "label",
+          "font_id": 0,
+          "content": "You are about to sell this item for the half of its original",
+          "position_y": 80,
+          "alignment_x": 5,
+          "width": 400
+        },
+        {
+          "label": "message_line2",
+          "kind": "label",
+          "font_id": 0,
+          "content": "price, snapping all the links currently connected to it.",
+          "position_y": 100,
+          "alignment_x": 5,
+          "width": 400
+        },
+        {
+          "label": "message_line3",
+          "kind": "label",
+          "font_id": 0,
+          "content": "Are you sure you want to move ahead with the operation?",
+          "position_y": 120,
+          "alignment_x": 5,
+          "width": 400
+        },
+        {
+          "label": "button_ok",
+          "kind": "button",
+          "font_id": 0,
+          "content": "OK",
+          "position_y": 170,
+          "position_x": 220,
+          "width": 80,
+          "height": 30
+        },
+        {
+          "label": "button_cancel",
+          "kind": "button",
+          "font_id": 0,
+          "content": "NOPE",
+          "position_y": 170,
+          "position_x": 320,
+          "width": 80,
+          "height": 30
+        }
+      ]
+    }
+  ]
+}

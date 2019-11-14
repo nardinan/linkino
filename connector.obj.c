@@ -150,7 +150,8 @@ d_define_method(connector, is_over)(struct s_object *self, int position_x, int p
 d_define_method(connector, is_snapped)(struct s_object *self) {
   d_using(connector);
   struct s_object *result = NULL;
-  if ((time(NULL) - connector_attributes->last_timestamp_below_maximum) > connector_attributes->snapping_time)
+  if (((!connector_attributes->source_link) && (!connector_attributes->destination_link)) ||
+      ((time(NULL) - connector_attributes->last_timestamp_below_maximum) > connector_attributes->snapping_time))
     result = self;
   return result;
 }

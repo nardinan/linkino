@@ -28,6 +28,7 @@
 #define d_connectable_code_size 10
 #define d_connectable_min_seconds_between_generation 1
 #define d_connectable_max_seconds_between_generation 10
+#define d_connectable_max_packets 64
 extern unsigned int index_human_name;
 extern const char *list_human_names[];
 struct s_connectable_link { d_list_node_head;
@@ -35,6 +36,7 @@ struct s_connectable_link { d_list_node_head;
   char label[d_string_buffer_size], unique_code[d_connectable_code_size];
   struct s_object *connectable;
   struct s_object *connector;
+  struct s_object *traveling_packets[d_connectable_max_packets];
 } s_connectable_link;
 d_declare_class(connectable) {
   struct s_attributes head;

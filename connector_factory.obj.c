@@ -139,8 +139,9 @@ d_define_method(connector_factory, check_snapped)(struct s_object *self) {
         if (d_call(current_connector, m_connector_is_snapped, NULL)) {
           struct s_connector_attributes *connector_attributes = d_cast(current_connector, connector);
           /* the connector has been snapped! Damn! */
-          printf("ARC between %s (link %s) and %s (link %s) SNAPPED due to an overload\n", connector_attributes->source_link->unique_code,
-              connector_attributes->source_link->label, connector_attributes->destination_link->unique_code, connector_attributes->destination_link->label);
+          if ((connector_attributes->source_link) && (connector_attributes->destination_link))
+            printf("ARC between %s (link %s) and %s (link %s) SNAPPED due to an overload\n", connector_attributes->source_link->unique_code,
+                connector_attributes->source_link->label, connector_attributes->destination_link->unique_code, connector_attributes->destination_link->label);
           ++(connector_factory_attributes->snapped_connectors);
           d_call(current_connector, m_connector_destroy_links, NULL);
           d_call(connector_factory_attributes->array_of_connectors, m_array_remove, index);
@@ -150,6 +151,20 @@ d_define_method(connector_factory, check_snapped)(struct s_object *self) {
         }
     if (connector_deleted)
       --entries;
+  }
+  return self;
+}
+d_define_method(connector_factory, force_snap)(struct s_object *self, struct s_object *connector) {
+  d_using(connector_factory);
+  struct s_object *current_connector;
+  d_array_foreach(connector_factory_attributes->array_of_connectors, current_connector) {
+    if (current_connector == connector) {
+      struct s_connector_attributes *connector_attributes = d_cast(current_connector, connector);
+      d_call(current_connector, m_connector_destroy_links, NULL);
+      d_call(connector_factory_attributes->array_of_connectors, m_array_remove, index);
+      d_call(connector_factory_attributes->array_of_connectors, m_array_shrink, NULL);
+      break;
+    }
   }
   return self;
 }
@@ -203,7 +218,7 @@ d_define_method_override(connector_factory, event)(struct s_object *self, struct
         }
       } else if (current_event->button.button == SDL_BUTTON_RIGHT) {
         /* if we are here, means that we just have right-clicked on the screen and we don't have any active link. We might want to delete the first
-         * link that is next the mouse and that is currently active
+         * link that is next the mouse and that is currently active.
          */
         struct s_object *current_connector;
         size_t elements;
@@ -256,6 +271,7 @@ d_define_class(connector_factory) {d_hook_method(connector_factory, e_flag_publi
   d_hook_method(connector_factory, e_flag_private, is_reachable),
   d_hook_method(connector_factory, e_flag_public, get_connector_for),
   d_hook_method(connector_factory, e_flag_public, check_snapped),
+  d_hook_method(connector_factory, e_flag_public, force_snap),
   d_hook_method_override(connector_factory, e_flag_public, eventable, event),
   d_hook_method_override(connector_factory, e_flag_public, drawable, draw),
   d_hook_delete(connector_factory),

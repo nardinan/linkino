@@ -16,10 +16,28 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "connectable_factory.obj.h"
-void p_connectable_factory_left_click(struct s_object *self, void **parameters, size_t entries) {
+#include "connector.obj.h"
+#include "packet.obj.h"
+void p_connectable_factory_click_create(struct s_object *self, void **parameters, size_t entries) {
   struct s_object *connectable_factory = (struct s_object *)parameters[0];
   struct s_connectable_factory_template *current_template = (struct s_connectable_factory_template *)parameters[1];
-  d_call(connectable_factory, m_connectable_factory_click_received, current_template);
+  d_call(connectable_factory, m_connectable_factory_click_received_create, current_template);
+}
+void p_connectable_factory_click_sell(struct s_object *self, void **parameters, size_t entries) {
+  struct s_object *connectable_factory = (struct s_object *)parameters[0];
+  struct s_object *ui_button = (struct s_object *)parameters[1];
+  d_call(connectable_factory, m_connectable_factory_click_received_sell, NULL);
+  /* due to the fact that the interface will be removed immediately, the system needs to manually 
+   * reset the status of the button */
+  d_call(ui_button, m_uiable_mode, e_uiable_mode_idle);
+}
+void p_connectable_factory_click_cancel(struct s_object *self, void **parameters, size_t entries) {
+  struct s_object *connectable_factory = (struct s_object *)parameters[0];
+  struct s_object *ui_button = (struct s_object *)parameters[1];
+  d_call(connectable_factory, m_connectable_factory_click_received_cancel, NULL);
+  /* due to the fact that the interface will be removed immediately, the system needs to manually 
+   * reset the status of the button */
+  d_call(ui_button, m_uiable_mode, e_uiable_mode_idle);
 }
 struct s_connectable_factory_attributes *p_connectable_factory_alloc(struct s_object *self) {
   struct s_connectable_factory_attributes *result = d_prepare(self, connectable_factory);
@@ -31,10 +49,26 @@ struct s_connectable_factory_attributes *p_connectable_factory_alloc(struct s_ob
 }
 struct s_object *f_connectable_factory_new(struct s_object *self, struct s_object *ui_factory, struct s_object *environment) {
   struct s_connectable_factory_attributes *connectable_factory_attributes = p_connectable_factory_alloc(self);
-  d_assert(connectable_factory_attributes->array_connectable_instances = f_array_new(d_new(array), d_array_bucket));
+  struct s_uiable_container *container;
   connectable_factory_attributes->ui_factory = d_retain(ui_factory);
   connectable_factory_attributes->environment = d_retain(environment);
   memset(&(connectable_factory_attributes->list_templates), 0, sizeof(struct s_list));
+  d_assert(connectable_factory_attributes->array_connectable_instances = f_array_new(d_new(array), d_array_bucket));
+  if ((container = d_call(connectable_factory_attributes->ui_factory, m_ui_factory_get_component, NULL, "confirmation_sell"))) {
+    struct s_uiable_container *button_ok, *button_cancel;
+    struct s_eventable_attributes *eventable_attributes = d_cast(container->uiable, eventable);
+    connectable_factory_attributes->ui_sell_confirmation = container->uiable;
+    d_assert(button_ok = d_call(connectable_factory_attributes->ui_factory, m_ui_factory_get_component, container, "button_ok"));
+    d_call(button_ok->uiable, m_emitter_embed_parameter, "clicked_left", self);
+    d_call(button_ok->uiable, m_emitter_embed_parameter, "clicked_left", button_ok->uiable);
+    d_call(button_ok->uiable, m_emitter_embed_function, "clicked_left", p_connectable_factory_click_sell);
+    d_assert(button_cancel = d_call(connectable_factory_attributes->ui_factory, m_ui_factory_get_component, container, "button_cancel"));
+    d_call(button_cancel->uiable, m_emitter_embed_parameter, "clicked_left", self);
+    d_call(button_cancel->uiable, m_emitter_embed_parameter, "clicked_left", button_cancel->uiable);
+    d_call(button_cancel->uiable, m_emitter_embed_function, "clicked_left", p_connectable_factory_click_cancel);
+    eventable_attributes->ignore_event_if_consumed = d_false;
+  } else
+    d_die(d_error_malloc);
   return self;
 }
 d_define_method(connectable_factory, add_connectable_template)(struct s_object *self, struct s_object *stream, const char *title, const char *description,
@@ -55,7 +89,7 @@ d_define_method(connectable_factory, add_connectable_template)(struct s_object *
               current_template->title))) {
         d_call(current_template->uiable_button, m_emitter_embed_parameter, "clicked_left", self);
         d_call(current_template->uiable_button, m_emitter_embed_parameter, "clicked_left", current_template);
-        d_call(current_template->uiable_button, m_emitter_embed_function, "clicked_left", p_connectable_factory_left_click);
+        d_call(current_template->uiable_button, m_emitter_embed_function, "clicked_left", p_connectable_factory_click_create);
         d_call(current_template->uiable_button, m_drawable_set_dimension, d_connectable_factory_button_width, d_connectable_factory_button_height);
         if ((current_template->drawable_icon = f_bitmap_new(d_new(bitmap), current_template->stream, connectable_factory_attributes->environment))) {
           f_list_append(&(connectable_factory_attributes->list_templates), (struct s_list_node *)current_template, e_list_insert_tail);
@@ -91,10 +125,50 @@ d_define_method(connectable_factory, is_traffic_generation_required)(struct s_ob
   }
   d_cast_return(result);
 }
-d_define_method(connectable_factory, click_received)(struct s_object *self, struct s_connectable_factory_template *template) {
+d_define_method(connectable_factory, click_received_create)(struct s_object *self, struct s_connectable_factory_template *template) {
   d_using(connectable_factory);
   if (!connectable_factory_attributes->active_template)
     connectable_factory_attributes->active_template = template;
+  return self;
+}
+d_define_method(connectable_factory, click_received_sell)(struct s_object *self) {
+  d_using(connectable_factory);
+  size_t elements;
+  struct s_object *current_connectable;
+  d_call(connectable_factory_attributes->array_connectable_instances, m_array_size, &elements);
+  for (size_t index = 0; index < elements; ++index)
+    if ((current_connectable = d_call(connectable_factory_attributes->array_connectable_instances, m_array_get, index)))
+      if (current_connectable == connectable_factory_attributes->delete_connectable) {
+        struct s_connectable_attributes *connectable_attributes = d_cast(current_connectable, connectable);
+        struct s_connectable_link *current_link;
+        /* we unlink all the connectors that are currently linked to this specific node */
+        d_foreach(&(connectable_attributes->list_connection_nodes), current_link, struct s_connectable_link) {
+          for (size_t index = 0; index < d_connectable_max_packets; ++index) 
+            if (current_link->traveling_packets[index]) {
+              d_call(current_link->traveling_packets[index], m_packet_destroy_links, NULL);
+              current_link->traveling_packets[index] = NULL;
+            }
+          if (current_link->connector) {
+            d_call(current_link->connector, m_connector_destroy_links, NULL);
+            current_link->connector = NULL;
+          }
+        }
+        d_call(connectable_factory_attributes->array_connectable_instances, m_array_remove, index);
+        d_call(connectable_factory_attributes->array_connectable_instances, m_array_shrink, NULL);
+        break;
+      }
+  connectable_factory_attributes->delete_connectable = NULL;
+  d_call(connectable_factory_attributes->environment, m_environment_del_drawable, connectable_factory_attributes->ui_sell_confirmation, 
+      (d_ui_factory_default_level + 1), e_environment_surface_primary);
+  connectable_factory_attributes->ui_sell_confirmation_visible = d_false;
+  return self;
+}
+d_define_method(connectable_factory, click_received_cancel)(struct s_object *self) {
+  d_using(connectable_factory);
+  connectable_factory_attributes->delete_connectable = NULL;
+  d_call(connectable_factory_attributes->environment, m_environment_del_drawable, connectable_factory_attributes->ui_sell_confirmation, 
+      (d_ui_factory_default_level + 1), e_environment_surface_primary);
+  connectable_factory_attributes->ui_sell_confirmation_visible = d_false;
   return self;
 }
 d_define_method_override(connectable_factory, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event) {
@@ -112,7 +186,17 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
    *
    * Remember that active connectable has always the priority over active_template.
    */
-  if (connectable_factory_attributes->active_connectable) {
+  if (connectable_factory_attributes->delete_connectable) { 
+    /* we have an object that is supposed to be deleted. For the time being there is nothing to do, we can just ignore. However we should mark the 
+     * event as "changed"  because we don't want anybody else to do it
+     */
+    if (!connectable_factory_attributes->ui_sell_confirmation_visible) {
+      d_call(connectable_factory_attributes->environment, m_environment_add_drawable, connectable_factory_attributes->ui_sell_confirmation,
+          (d_ui_factory_default_level + 1), e_environment_surface_primary);
+      connectable_factory_attributes->ui_sell_confirmation_visible = d_true;
+    }
+    changed = d_true;
+  } else if (connectable_factory_attributes->active_connectable) {
     if ((current_event->type == SDL_MOUSEBUTTONDOWN) && (current_event->button.button == SDL_BUTTON_LEFT))
       connectable_factory_attributes->active_connectable = NULL;
     changed = d_true;
@@ -134,6 +218,7 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
       }
       d_call(connectable_factory_attributes->array_connectable_instances, m_array_push, connectable);
       connectable_factory_attributes->active_template = NULL;
+      d_delete(connectable);
     }
     changed = d_true;
   } else {
@@ -159,12 +244,17 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
             int mouse_x, mouse_y;
             d_call(environment, m_environment_get_mouse_normalized, "draw_camera", &mouse_x, &mouse_y);
             d_array_foreach(connectable_factory_attributes->array_connectable_instances, current_connectable)
-              if (d_call(current_connectable, m_connectable_is_over, mouse_x, mouse_y))
+              if (d_call(current_connectable, m_connectable_is_over, mouse_x, mouse_y)) {
                 if (current_event->button.button == SDL_BUTTON_LEFT) {
                   connectable_factory_attributes->active_connectable = current_connectable;
                   changed = d_true;
                   break;
+                } else if (current_event->button.button == SDL_BUTTON_RIGHT) {
+                  connectable_factory_attributes->delete_connectable = current_connectable;
+                  changed = d_true;
+                  break;
                 }
+              }
           }
         } else
           changed = d_true;
@@ -233,7 +323,9 @@ d_define_class(connectable_factory) {d_hook_method(connectable_factory, e_flag_p
   d_hook_method(connectable_factory, e_flag_public, set_connector_selected),
   d_hook_method(connectable_factory, e_flag_public, get_selected_node),
   d_hook_method(connectable_factory, e_flag_public, is_traffic_generation_required),
-  d_hook_method(connectable_factory, e_flag_public, click_received),
+  d_hook_method(connectable_factory, e_flag_public, click_received_create),
+  d_hook_method(connectable_factory, e_flag_public, click_received_sell),
+  d_hook_method(connectable_factory, e_flag_public, click_received_cancel),
   d_hook_method_override(connectable_factory, e_flag_public, eventable, event),
   d_hook_method_override(connectable_factory, e_flag_public, drawable, draw),
   d_hook_delete(connectable_factory),

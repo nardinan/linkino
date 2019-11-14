@@ -45,8 +45,26 @@ d_define_method(packet, set_traveling)(struct s_object *self, struct s_object *c
   if (packet_attributes->connector_traveling)
     d_delete(packet_attributes->connector_traveling);
   packet_attributes->connector_traveling = d_retain(connector_traveling);
+  if (packet_attributes->ingoing_connectable_link)
+    for (size_t index = 0; index < d_connectable_max_packets; ++index)
+      if (packet_attributes->ingoing_connectable_link->traveling_packets[index] == self)
+        packet_attributes->ingoing_connectable_link->traveling_packets[index] = NULL;
+  if (packet_attributes->outgoing_connectable_link)
+    for (size_t index = 0; index < d_connectable_max_packets; ++index)
+      if (packet_attributes->outgoing_connectable_link->traveling_packets[index] == self)
+        packet_attributes->outgoing_connectable_link->traveling_packets[index] = NULL;
   packet_attributes->ingoing_connectable_link = ingoing_connectable_link;
   packet_attributes->outgoing_connectable_link = outgoing_connectable_link;
+  for (size_t index = 0; index < d_connectable_max_packets; ++index)
+    if (!packet_attributes->ingoing_connectable_link->traveling_packets[index]) {
+      packet_attributes->ingoing_connectable_link->traveling_packets[index] = self;
+      break;
+    }
+  for (size_t index = 0; index < d_connectable_max_packets; ++index)
+    if (!packet_attributes->outgoing_connectable_link->traveling_packets[index]) {
+      packet_attributes->outgoing_connectable_link->traveling_packets[index] = self;
+      break;
+    }
   packet_attributes->time_launched = time(NULL);
   strncpy(packet_attributes->unique_initial_source, unique_initial_source, d_connectable_code_size);
   strncpy(packet_attributes->unique_final_destination, unique_final_destination, d_connectable_code_size);
@@ -68,8 +86,26 @@ d_define_method(packet, set_traveling_next_hop)(struct s_object *self, struct s_
   if (packet_attributes->connector_traveling)
     d_delete(packet_attributes->connector_traveling);
   packet_attributes->connector_traveling = d_retain(connector_traveling);
+  if (packet_attributes->ingoing_connectable_link)
+    for (size_t index = 0; index < d_connectable_max_packets; ++index)
+      if (packet_attributes->ingoing_connectable_link->traveling_packets[index] == self)
+        packet_attributes->ingoing_connectable_link->traveling_packets[index] = NULL;
+  if (packet_attributes->outgoing_connectable_link)
+    for (size_t index = 0; index < d_connectable_max_packets; ++index)
+      if (packet_attributes->outgoing_connectable_link->traveling_packets[index] == self)
+        packet_attributes->outgoing_connectable_link->traveling_packets[index] = NULL;
   packet_attributes->ingoing_connectable_link = ingoing_connectable_link;
   packet_attributes->outgoing_connectable_link = outgoing_connectable_link;
+  for (size_t index = 0; index < d_connectable_max_packets; ++index)
+    if (!packet_attributes->ingoing_connectable_link->traveling_packets[index]) {
+      packet_attributes->ingoing_connectable_link->traveling_packets[index] = self;
+      break;
+    }
+  for (size_t index = 0; index < d_connectable_max_packets; ++index)
+    if (!packet_attributes->outgoing_connectable_link->traveling_packets[index]) {
+      packet_attributes->outgoing_connectable_link->traveling_packets[index] = self;
+      break;
+    }
   ++packet_attributes->hops_performed;
   if (connector_attributes->source_link == ingoing_connectable_link) {
     packet_attributes->current_position = 0.0;
@@ -140,14 +176,39 @@ d_define_method_override(packet, draw)(struct s_object *self, struct s_object *e
       d_call(packet_attributes->drawable_icon, m_drawable_set_position, (double)(position_x - (icon_width / 2.0)), 
           (double)(position_y - (icon_height / 2.0)));
       if ((d_call(packet_attributes->drawable_icon, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
-        camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
-        camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
+              camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
+              camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
         while (((intptr_t)d_call(packet_attributes->drawable_icon, m_drawable_draw, environment)) == d_drawable_return_continue);
     }
   }
   d_cast_return(d_drawable_return_last);
 }
+d_define_method(packet, destroy_links)(struct s_object *self) {
+  d_using(packet);
+  if (packet_attributes->ingoing_connectable_link)
+    for (size_t index = 0; index < d_connectable_max_packets; ++index)
+      if (packet_attributes->ingoing_connectable_link->traveling_packets[index] == self)
+        packet_attributes->ingoing_connectable_link->traveling_packets[index] = NULL;
+  packet_attributes->ingoing_connectable_link = NULL;
+  if (packet_attributes->outgoing_connectable_link)
+    for (size_t index = 0; index < d_connectable_max_packets; ++index)
+      if (packet_attributes->outgoing_connectable_link->traveling_packets[index] == self)
+        packet_attributes->outgoing_connectable_link->traveling_packets[index] = NULL;
+  packet_attributes->outgoing_connectable_link = NULL;
+  return self;
+}
 d_define_method(packet, delete)(struct s_object *self, struct s_packet_attributes *attributes) {
+  if (attributes->ingoing_connectable_link)
+    for (size_t index = 0; index < d_connectable_max_packets; ++index)
+      if (attributes->ingoing_connectable_link->traveling_packets[index] == self)
+        attributes->ingoing_connectable_link->traveling_packets[index] = NULL;
+  attributes->ingoing_connectable_link = NULL;
+  if (attributes->outgoing_connectable_link)
+    for (size_t index = 0; index < d_connectable_max_packets; ++index)
+      if (attributes->outgoing_connectable_link->traveling_packets[index] == self)
+        attributes->outgoing_connectable_link->traveling_packets[index] = NULL;
+  attributes->outgoing_connectable_link = NULL;
+  attributes->outgoing_connectable_link = NULL;
   if (attributes->connector_traveling)
     d_delete(attributes->connector_traveling);
   d_delete(attributes->drawable_icon);
@@ -157,14 +218,15 @@ d_define_method(packet, delete)(struct s_object *self, struct s_packet_attribute
   return NULL;
 }
 d_define_class(packet) {d_hook_method(packet, e_flag_public, set_traveling),
-                        d_hook_method(packet, e_flag_public, set_traveling_next_hop),
-                        d_hook_method(packet, e_flag_public, set_traveling_complete),
-                        d_hook_method(packet, e_flag_public, set_analyzing),
-                        d_hook_method(packet, e_flag_public, set_traveling_speed),
-                        d_hook_method(packet, e_flag_public, is_arrived_to_its_hop),
-                        d_hook_method(packet, e_flag_public, is_arrived_to_its_destination),
-                        d_hook_method(packet, e_flag_public, move_by),
-                        d_hook_method_override(packet, e_flag_public, eventable, event),
-                        d_hook_method_override(packet, e_flag_public, drawable, draw),
-                        d_hook_delete(packet),
-                        d_hook_method_tail};
+  d_hook_method(packet, e_flag_public, set_traveling_next_hop),
+  d_hook_method(packet, e_flag_public, set_traveling_complete),
+  d_hook_method(packet, e_flag_public, set_analyzing),
+  d_hook_method(packet, e_flag_public, set_traveling_speed),
+  d_hook_method(packet, e_flag_public, is_arrived_to_its_hop),
+  d_hook_method(packet, e_flag_public, is_arrived_to_its_destination),
+  d_hook_method(packet, e_flag_public, move_by),
+  d_hook_method_override(packet, e_flag_public, eventable, event),
+  d_hook_method_override(packet, e_flag_public, drawable, draw),
+  d_hook_method(packet, e_flag_public, destroy_links),
+  d_hook_delete(packet),
+  d_hook_method_tail};
