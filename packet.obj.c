@@ -175,6 +175,10 @@ d_define_method_override(packet, draw)(struct s_object *self, struct s_object *e
       d_call(packet_attributes->drawable_icon, m_drawable_get_dimension, &icon_width, &icon_height);
       d_call(packet_attributes->drawable_icon, m_drawable_set_position, (double)(position_x - (icon_width / 2.0)), 
           (double)(position_y - (icon_height / 2.0)));
+      if ((packet_attributes->flags & d_packet_spam) == d_packet_spam)
+        d_call(packet_attributes->drawable_icon, m_drawable_set_maskRGB, (unsigned int)255, (unsigned int)50, (unsigned int)50);
+      else
+        d_call(packet_attributes->drawable_icon, m_drawable_set_maskRGB, (unsigned int)255, (unsigned int)255, (unsigned int)255);
       if ((d_call(packet_attributes->drawable_icon, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
               camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
               camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))

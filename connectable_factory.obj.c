@@ -207,7 +207,8 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
       /* we drop the active template and we create a new connectable that we push into the array */
       struct s_object *connectable =
         f_connectable_new(d_new(connectable), connectable_factory_attributes->active_template->stream, 
-            connectable_factory_attributes->environment, ((connectable_factory_attributes->active_template->generate_traffic)?d_true:d_false));
+            connectable_factory_attributes->environment, connectable_factory_attributes->ui_factory, 
+            ((connectable_factory_attributes->active_template->generate_traffic)?d_true:d_false));
       d_call(connectable, m_connectable_set_generate_traffic, connectable_factory_attributes->active_template->generate_traffic);
       d_call(connectable, m_drawable_set_position, connectable_factory_attributes->active_template->position_x,
           connectable_factory_attributes->active_template->position_y);

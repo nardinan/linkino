@@ -72,14 +72,18 @@ struct s_connectable_attributes *p_connectable_alloc(struct s_object *self, stru
   f_eventable_new(self);                    /* inherit */
   return result;
 }
-extern struct s_object *f_connectable_new(struct s_object *self, struct s_object *stream, struct s_object *environment, t_boolean use_human_name) {
+extern struct s_object *f_connectable_new(struct s_object *self, struct s_object *stream, struct s_object *environment, struct s_object *ui_factory, 
+    t_boolean use_human_name) {
   struct s_connectable_attributes *connectable_attributes = p_connectable_alloc(self, stream, environment);
   memset(&(connectable_attributes->list_connection_nodes), 0, sizeof(struct s_list));
-  if (!use_human_name) {
+  if (use_human_name) {
+    strncpy(connectable_attributes->unique_code, list_human_names[index_human_name++], d_connectable_code_size);
+    d_assert((connectable_attributes->ui_label = d_call(ui_factory, m_ui_factory_new_label, d_ui_factory_default_font_id, 
+            d_ui_factory_default_font_style, connectable_attributes->unique_code)));
+  } else {
     for (unsigned int index = 0; index < (d_connectable_code_size - 1); ++index)
       connectable_attributes->unique_code[index] = ((rand() % (((char)'Z') - ((char)'A'))) + (char)'A');
-  } else
-    strncpy(connectable_attributes->unique_code, list_human_names[index_human_name++], d_connectable_code_size);
+  }
   return self;
 }
 d_define_method(connectable, set_generate_traffic)(struct s_object *self, t_boolean generate_traffic) {
@@ -175,38 +179,46 @@ d_define_method_override(connectable, event)(struct s_object *self, struct s_obj
 d_define_method_override(connectable, draw)(struct s_object *self, struct s_object *environment) {
   d_using(connectable);
   struct s_environment_attributes *environment_attributes = d_cast(environment, environment);
+  struct s_camera_attributes *camera_attributes = d_cast(environment_attributes->current_camera, camera);
   struct s_drawable_attributes *drawable_attributes = d_cast(self, drawable);
-  struct s_camera_attributes *camera_attributes;
   struct s_connectable_link *connection_node;
-  double position_x, position_y;
+  double position_x, position_y, width, height;
   int result = (intptr_t)d_call_owner(self, bitmap, m_drawable_draw, environment); /* recall the father's draw method */
   d_call(&(drawable_attributes->point_destination), m_point_get, &position_x, &position_y);
+  d_call(&(drawable_attributes->point_dimension), m_point_get, &width, &height);
+  if (connectable_attributes->ui_label) {
+    double width_label, height_label;
+    d_call(connectable_attributes->ui_label, m_drawable_get_dimension, &width_label, &height_label);
+    d_call(connectable_attributes->ui_label, m_drawable_set_position, ((position_x + (width / 2.0)) - (width_label / 2.0)), 
+        (position_y - height_label));
+    if ((d_call(connectable_attributes->ui_label, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
+            camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
+            camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
+      while (((intptr_t)d_call(connectable_attributes->ui_label, m_drawable_draw, environment)) == d_drawable_return_continue);
+  }
+  /* we need to update the position of the links of the node in respect of its position */
   d_foreach(&(connectable_attributes->list_connection_nodes), connection_node, struct s_connectable_link) {
-    /* update the position of the nodes in respect of the final position of the connectable */
     connection_node->final_position_x = (connection_node->offset_x + position_x + (connection_node->width / 2.0));
     connection_node->final_position_y = (connection_node->offset_y + position_y + (connection_node->height / 2.0));
   }
-  /* we need to update the position of the links of the node in respect of its position */
-  if ((camera_attributes = d_cast(environment_attributes->current_camera, camera))) {
-    if (connectable_attributes->draw_rectangle) {
-      if (!connectable_attributes->normalized) {
-        /* we need to normalize the values stored into the rectangle x and y coordinates, accordingly to the camera */
-        for (unsigned int index = 0; index < d_connectable_rectangle_elements; ++index) {
-          connectable_attributes->rectangle_x[index] =
-            ((double)connectable_attributes->rectangle_x[index] * camera_attributes->screen_w) / camera_attributes->scene_reference_w;
-          connectable_attributes->rectangle_y[index] =
-            ((double)connectable_attributes->rectangle_y[index] * camera_attributes->screen_h) / camera_attributes->scene_reference_h;
-          connectable_attributes->rectangle_x[index] = ((double)connectable_attributes->rectangle_x[index] + camera_attributes->scene_offset_x);
-          connectable_attributes->rectangle_y[index] = ((double)connectable_attributes->rectangle_y[index] + camera_attributes->scene_offset_y);
-          connectable_attributes->rectangle_x[index] = ((double)connectable_attributes->rectangle_x[index] * camera_attributes->scene_zoom);
-          connectable_attributes->rectangle_y[index] = ((double)connectable_attributes->rectangle_y[index] * camera_attributes->scene_zoom);
-        }
-        connectable_attributes->normalized = d_true;
+  if (connectable_attributes->draw_rectangle) {
+    if (!connectable_attributes->normalized) {
+      /* we need to normalize the values stored into the rectangle x and y coordinates, accordingly to the camera */
+      for (unsigned int index = 0; index < d_connectable_rectangle_elements; ++index) {
+        connectable_attributes->rectangle_x[index] =
+          ((double)connectable_attributes->rectangle_x[index] * camera_attributes->screen_w) / camera_attributes->scene_reference_w;
+        connectable_attributes->rectangle_y[index] =
+          ((double)connectable_attributes->rectangle_y[index] * camera_attributes->screen_h) / camera_attributes->scene_reference_h;
+        connectable_attributes->rectangle_x[index] = ((double)connectable_attributes->rectangle_x[index] + camera_attributes->scene_offset_x);
+        connectable_attributes->rectangle_y[index] = ((double)connectable_attributes->rectangle_y[index] + camera_attributes->scene_offset_y);
+        connectable_attributes->rectangle_x[index] = ((double)connectable_attributes->rectangle_x[index] * camera_attributes->scene_zoom);
+        connectable_attributes->rectangle_y[index] = ((double)connectable_attributes->rectangle_y[index] * camera_attributes->scene_zoom);
       }
-      f_primitive_fill_polygon(environment_attributes->renderer, connectable_attributes->rectangle_x, connectable_attributes->rectangle_y,
-          d_connectable_rectangle_elements, d_connectable_rectangle_R, d_connectable_rectangle_G, d_connectable_rectangle_B,
-          d_connectable_rectangle_A);
+      connectable_attributes->normalized = d_true;
     }
+    f_primitive_fill_polygon(environment_attributes->renderer, connectable_attributes->rectangle_x, connectable_attributes->rectangle_y,
+        d_connectable_rectangle_elements, d_connectable_rectangle_R, d_connectable_rectangle_G, d_connectable_rectangle_B,
+        d_connectable_rectangle_A);
   }
   d_cast_return(result);
 }

@@ -27,24 +27,43 @@ struct s_director_attributes *p_director_alloc(struct s_object *self) {
 extern struct s_object *f_director_new(struct s_object *self, struct s_object *environment, struct s_object *ui_factory, struct s_object *media_factory) {
   struct s_director_attributes *director_attributes = p_director_alloc(self);
   struct s_object *drawable_line_step;
+  struct s_uiable_container *container;
   director_attributes->environment = d_retain(environment);
   director_attributes->ui_factory = d_retain(ui_factory);
   director_attributes->media_factory = d_retain(media_factory);
   d_assert((drawable_line_step = d_call(media_factory, m_media_factory_get_bitmap, "line_spot")));
-  d_assert((director_attributes->connector_factory = f_connector_factory_new(d_new(connector_factory), drawable_line_step)));
+  d_assert((director_attributes->statistics = f_statistics_new(d_new(statistics))));
+  d_assert((director_attributes->connector_factory = f_connector_factory_new(d_new(connector_factory), drawable_line_step,
+          director_attributes->statistics)));
   d_assert((director_attributes->connectable_factory = f_connectable_factory_new(d_new(connectable_factory), ui_factory, environment)));
   d_assert((director_attributes->packet_factory = f_packet_factory_new(d_new(packet_factory), director_attributes->ui_factory, 
-          director_attributes->media_factory, director_attributes->connectable_factory, director_attributes->connector_factory)));
+          director_attributes->media_factory, director_attributes->connectable_factory, director_attributes->connector_factory,
+          director_attributes->statistics)));
+  if ((container = d_call(director_attributes->ui_factory, m_ui_factory_get_component, NULL, "statistics"))) {
+    director_attributes->ui_statistics = container->uiable;
+    d_assert((director_attributes->ui_labels[e_statistics_packet_shipped] = d_call(director_attributes->ui_factory, m_ui_factory_get_component, 
+            container, "result_label1")));
+    d_assert((director_attributes->ui_labels[e_statistics_packet_lost] = d_call(director_attributes->ui_factory, m_ui_factory_get_component, 
+            container, "result_label2")));
+    d_assert((director_attributes->ui_labels[e_statistics_spam] = d_call(director_attributes->ui_factory, m_ui_factory_get_component, 
+            container, "result_label3")));
+    d_assert((director_attributes->ui_labels[e_statistics_average_time] = d_call(director_attributes->ui_factory, m_ui_factory_get_component, 
+            container, "result_label4")));
+    d_assert((director_attributes->ui_labels[e_statistics_average_hops] = d_call(director_attributes->ui_factory, m_ui_factory_get_component, 
+            container, "result_label5")));
+    d_call(director_attributes->environment, m_environment_add_drawable, director_attributes->ui_statistics, (d_ui_factory_default_level + 1),
+        e_environment_surface_primary);
+  }
   return self;
 }
 d_define_method(director, add_node)(struct s_object *self, const char *stream_icon_label, const char *title, const char *description, double *offsets_x,
-                                    double *offsets_y, size_t connections, t_boolean generate_traffic) {
+    double *offsets_y, size_t connections, t_boolean generate_traffic) {
   d_using(director);
   struct s_object *stream;
   struct s_media_factory_attributes *media_factory_attributes = d_cast(director_attributes->media_factory, media_factory);
   if ((stream = d_call(media_factory_attributes->resources_png, m_resources_get_stream_strict, stream_icon_label, e_resources_type_common))) {
     d_call(director_attributes->connectable_factory, m_connectable_factory_add_connectable_template, stream, title, description, offsets_x, offsets_y,
-      connections, generate_traffic);
+        connections, generate_traffic);
   }
   return self;
 }
@@ -65,9 +84,28 @@ d_define_method_override(director, event)(struct s_object *self, struct s_object
 }
 d_define_method_override(director, draw)(struct s_object *self, struct s_object *environment) {
   d_using(director);
+  struct s_statistics_attributes *statistics_attributes = d_cast(director_attributes->statistics, statistics);
+  char buffer[d_string_buffer_size];
   d_call(director_attributes->connectable_factory, m_drawable_draw, environment);
   d_call(director_attributes->connector_factory, m_drawable_draw, environment);
   d_call(director_attributes->packet_factory, m_drawable_draw, environment);
+  /* we do the update of the statistics */
+  snprintf(buffer, d_string_buffer_size, "%d", statistics_attributes->packet_shipped);
+  d_call(director_attributes->ui_labels[e_statistics_packet_shipped]->uiable, m_label_set_content_char, buffer, NULL, director_attributes->environment);
+  snprintf(buffer, d_string_buffer_size, "%d", (statistics_attributes->packet_lost + statistics_attributes->packet_not_shipped));
+  d_call(director_attributes->ui_labels[e_statistics_packet_lost]->uiable, m_label_set_content_char, buffer, NULL, director_attributes->environment);
+  snprintf(buffer, d_string_buffer_size, "%d", statistics_attributes->spam_shipped);
+  d_call(director_attributes->ui_labels[e_statistics_spam]->uiable, m_label_set_content_char, buffer, NULL, director_attributes->environment);
+  if (statistics_attributes->sum_packet_times > 0)
+    snprintf(buffer, d_string_buffer_size, "%.02f", (((double)statistics_attributes->sum_packet_times)/((double)statistics_attributes->packet_shipped)));
+  else
+    strncpy(buffer, "0.0", d_string_buffer_size);
+  d_call(director_attributes->ui_labels[e_statistics_average_time]->uiable, m_label_set_content_char, buffer, NULL, director_attributes->environment);
+  if (statistics_attributes->sum_packet_times > 0)
+    snprintf(buffer, d_string_buffer_size, "%.02f", (((double)statistics_attributes->sum_packet_hops)/((double)statistics_attributes->packet_shipped)));
+  else
+    strncpy(buffer, "0.0", d_string_buffer_size);
+  d_call(director_attributes->ui_labels[e_statistics_average_hops]->uiable, m_label_set_content_char, buffer, NULL, director_attributes->environment);
   d_cast_return(d_drawable_return_last);
 }
 d_declare_method(director, delete)(struct s_object *self, struct s_director_attributes *attributes) {

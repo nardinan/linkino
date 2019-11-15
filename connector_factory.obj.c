@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "connector_factory.obj.h"
+#include "statistics.obj.h"
 struct s_connector_factory_attributes *p_connector_factory_alloc(struct s_object *self) {
   struct s_connector_factory_attributes *result = d_prepare(self, connector_factory);
   f_memory_new(self);                                                                 /* inherit */
@@ -24,10 +25,11 @@ struct s_connector_factory_attributes *p_connector_factory_alloc(struct s_object
   f_eventable_new(self);                                                              /* inherit */
   return result;
 }
-struct s_object *f_connector_factory_new(struct s_object *self, struct s_object *drawable) {
+struct s_object *f_connector_factory_new(struct s_object *self, struct s_object *drawable, struct s_object *statistics) {
   struct s_connector_factory_attributes *connector_factory_attributes = p_connector_factory_alloc(self);
   if ((connector_factory_attributes->drawable = d_retain(drawable))) {
     connector_factory_attributes->array_of_connectors = f_array_new(d_new(array), d_array_bucket);
+    connector_factory_attributes->statistics = d_retain(statistics);
   }
   return self;
 }
@@ -142,7 +144,8 @@ d_define_method(connector_factory, check_snapped)(struct s_object *self) {
           if ((connector_attributes->source_link) && (connector_attributes->destination_link))
             printf("ARC between %s (link %s) and %s (link %s) SNAPPED due to an overload\n", connector_attributes->source_link->unique_code,
                 connector_attributes->source_link->label, connector_attributes->destination_link->unique_code, connector_attributes->destination_link->label);
-          ++(connector_factory_attributes->snapped_connectors);
+          if (connector_factory_attributes->statistics)
+            d_call(connector_factory_attributes->statistics, m_statistics_add_connector_snapped, NULL);
           d_call(current_connector, m_connector_destroy_links, NULL);
           d_call(connector_factory_attributes->array_of_connectors, m_array_remove, index);
           d_call(connector_factory_attributes->array_of_connectors, m_array_shrink, NULL);
@@ -243,18 +246,16 @@ d_define_method_override(connector_factory, draw)(struct s_object *self, struct 
   if (connector_factory_attributes->drawable) {
     struct s_object *current_connector;
     d_call(self, m_connector_factory_check_snapped, NULL);
-    if (connector_factory_attributes->active_connector) {
+    if (connector_factory_attributes->active_connector)
       if ((d_call(connector_factory_attributes->active_connector, m_drawable_normalize_scale, camera_attributes->scene_reference_w,
               camera_attributes->scene_reference_h, camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x,
               camera_attributes->scene_center_y, camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
         while (((intptr_t)d_call(connector_factory_attributes->active_connector, m_drawable_draw, environment)) == d_drawable_return_continue);
-    }
-    d_array_foreach(connector_factory_attributes->array_of_connectors, current_connector) {
+    d_array_foreach(connector_factory_attributes->array_of_connectors, current_connector)
       if ((d_call(current_connector, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
               camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
               camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
         while (((intptr_t)d_call(current_connector, m_drawable_draw, environment)) == d_drawable_return_continue);
-    }
   }
   d_cast_return(d_drawable_return_last);
 }
@@ -263,6 +264,8 @@ d_declare_method(connector_factory, delete)(struct s_object *self, struct s_conn
     d_delete(attributes->array_of_connectors);
   if (attributes->drawable)
     d_delete(attributes->drawable);
+  if (attributes->statistics)
+    d_delete(attributes->statistics);
   return NULL;
 }
 d_define_class(connector_factory) {d_hook_method(connector_factory, e_flag_public, set_drop),

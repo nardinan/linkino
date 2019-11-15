@@ -23,6 +23,7 @@
 #define d_packet_factory_statistics_maximum_targets 10
 #define d_packet_factory_statistics_maximum_index 30
 #define d_packet_factory_steps 0.01
+#define d_packet_factory_spam_percentage 25
 typedef struct s_packet_factory_statistics { d_list_node_head;
   struct s_object *connectable;
   double probability_target[d_packet_factory_statistics_maximum_targets]; /* the sum of these values has to be 1 */
@@ -34,12 +35,13 @@ d_declare_class(packet_factory) {
   struct s_object *connectable_factory;
   struct s_object *connector_factory;
   struct s_object *array_packets_traveling, *array_packets_arrived;
+  struct s_object *statistics;
   unsigned int orphan_packets;
   struct s_list statistics_generated;
 } d_declare_class_tail(packet_factory);
 struct s_packet_factory_attributes *p_packet_factory_alloc(struct s_object *self);
 extern struct s_object *f_packet_factory_new(struct s_object *self, struct s_object *ui_factory, struct s_object *media_factory,
-    struct s_object *connectable_factory, struct s_object *connector_factory);
+    struct s_object *connectable_factory, struct s_object *connector_factory, struct s_object *statistics);
 d_declare_method(packet_factory, create_packet)(struct s_object *self, struct s_object *environment, const char *unique_code_source,
     const char *unique_code_destination, struct s_connectable_link *ingoing_connectable_link);
 d_declare_method(packet_factory, forward_packet)(struct s_object *self, struct s_object *environment, struct s_object *packet);

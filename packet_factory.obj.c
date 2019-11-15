@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "packet_factory.obj.h"
+#include "statistics.obj.h"
 struct s_packet_factory_attributes *p_packet_factory_alloc(struct s_object *self) {
   struct s_packet_factory_attributes *result = d_prepare(self, packet_factory);
   f_memory_new(self);                                                                 /* inherit */
@@ -25,12 +26,13 @@ struct s_packet_factory_attributes *p_packet_factory_alloc(struct s_object *self
   return result;
 }
 struct s_object *f_packet_factory_new(struct s_object *self, struct s_object *ui_factory, struct s_object *media_factory, 
-    struct s_object *connectable_factory, struct s_object *connector_factory) {
+    struct s_object *connectable_factory, struct s_object *connector_factory, struct s_object *statistics) {
   struct s_packet_factory_attributes *packet_factory_attributes = p_packet_factory_alloc(self);
   packet_factory_attributes->ui_factory = d_retain(ui_factory);
   packet_factory_attributes->media_factory = d_retain(media_factory);
   packet_factory_attributes->connectable_factory = d_retain(connectable_factory);
   packet_factory_attributes->connector_factory = d_retain(connector_factory);
+  packet_factory_attributes->statistics = d_retain(statistics);
   d_assert(packet_factory_attributes->array_packets_traveling = f_array_new(d_new(array), d_array_bucket));
   d_assert(packet_factory_attributes->array_packets_arrived = f_array_new(d_new(array), d_array_bucket));
   memset(&(packet_factory_attributes->statistics_generated), 0, sizeof(struct s_list));
@@ -48,8 +50,9 @@ d_define_method(packet_factory, create_packet)(struct s_object *self, struct s_o
     if (((drawable_icon = d_call(packet_factory_attributes->media_factory, m_media_factory_get_media, "mail_icon", &type))) &&
         ((drawable_background = d_call(packet_factory_attributes->media_factory, m_media_factory_get_media, "mail_background", &type)))) {
       struct s_object *link;
+      int packet_flag = ((((rand() % 100) + 1) > (100 - d_packet_factory_spam_percentage))?d_packet_spam:0);
       if ((link = f_packet_new(d_new(packet), packet_factory_attributes->ui_factory, drawable_icon, drawable_background, 
-              "<EMPTY BODY />", (d_packet_spam)))) {
+              "<EMPTY BODY />", packet_flag))) {
         struct s_connector_attributes *connector_attributes = d_cast(connector, connector);
         struct s_connectable_link *outgoing_connectable_link = ((connector_attributes->source_link == ingoing_connectable_link)?
             connector_attributes->destination_link:connector_attributes->source_link);
@@ -68,7 +71,12 @@ d_define_method(packet_factory, forward_packet)(struct s_object *self, struct s_
     struct s_packet_attributes *packet_attributes = d_cast(packet, packet);
     /* OK, the packet is arrived to its next HOP but, what does this mean? It means that final destination is reached or that we have just to 
      * forward it to the next hop? */
-    if ((packet_attributes->ingoing_connectable_link) && (packet_attributes->outgoing_connectable_link)) {
+    if ((packet_attributes->ingoing_connectable_link) && 
+        (packet_attributes->ingoing_connectable_link->connectable) &&
+        (packet_attributes->ingoing_connectable_link->connector) &&
+        (packet_attributes->outgoing_connectable_link) &&
+        (packet_attributes->outgoing_connectable_link->connectable) &&
+        (packet_attributes->outgoing_connectable_link->connector)) {
       if ((f_string_strcmp(packet_attributes->unique_final_destination, packet_attributes->outgoing_connectable_link->unique_code) != 0)) {
         struct s_connectable_attributes *connectable_attributes = d_cast(packet_attributes->outgoing_connectable_link->connectable, connectable);
         struct s_connectable_link *current_connectable_link, *next_connectable_link, *selected_ingoing_connectable_link = NULL,
@@ -107,20 +115,30 @@ d_define_method(packet_factory, sort_packet)(struct s_object *self) {
       if ((current_packet = d_call(packet_factory_attributes->array_packets_traveling, m_array_get, index))) {
         struct s_packet_attributes *packet_attributes = d_cast(current_packet, packet);
         if ((!packet_attributes->ingoing_connectable_link) ||
+            (!packet_attributes->ingoing_connectable_link->connectable) ||
             (!packet_attributes->ingoing_connectable_link->connector) ||
             (!packet_attributes->outgoing_connectable_link) ||
+            (!packet_attributes->outgoing_connectable_link->connectable) ||
             (!packet_attributes->outgoing_connectable_link->connector)) {
-          /* the packet is an orphan. What a pity! */
-          printf("PACKET LOST (from %s to %s)\n", packet_attributes->unique_initial_source, packet_attributes->unique_final_destination);
-          ++(packet_factory_attributes->orphan_packets);
+          if ((packet_attributes->flags & d_packet_spam) != d_packet_spam) {
+            /* the packet is an orphan. What a pity! */
+            printf("PACKET LOST (from %s to %s)\n", packet_attributes->unique_initial_source, packet_attributes->unique_final_destination);
+            d_call(packet_factory_attributes->statistics, m_statistics_add_packet_lost, NULL);
+          }
           d_call(packet_factory_attributes->array_packets_traveling, m_array_remove, index);
           d_call(packet_factory_attributes->array_packets_traveling, m_array_shrink, NULL);
           packet_deleted = d_true;
           break;
         } else if ((intptr_t)d_call(current_packet, m_packet_is_arrived_to_its_destination, NULL)) {
-          /* the packet is arrived to its destination, we need then to move it to another array */
-          printf("PACKET ARRIVED (from %s to %s) in %zu seconds\n", packet_attributes->unique_initial_source, packet_attributes->unique_final_destination,
-              (packet_attributes->time_arrived - packet_attributes->time_launched));
+          if ((packet_attributes->flags & d_packet_spam) != d_packet_spam) {
+            /* the packet is arrived to its destination, we need then to move it to another array */
+            printf("PACKET ARRIVED (from %s to %s) in %zu seconds\n", packet_attributes->unique_initial_source, packet_attributes->unique_final_destination,
+                (packet_attributes->time_arrived - packet_attributes->time_launched));
+            d_call(packet_factory_attributes->statistics, m_statistics_add_packet_shipped, 
+                (time_t)(packet_attributes->time_arrived - packet_attributes->time_launched),
+                packet_attributes->hops_performed);
+          } else
+            d_call(packet_factory_attributes->statistics, m_statistics_add_spam_shipped, NULL);
           if (packet_attributes->connector_traveling) {
             d_delete(packet_attributes->connector_traveling);
             packet_attributes->connector_traveling = NULL;
@@ -226,6 +244,10 @@ d_define_method_override(packet_factory, draw)(struct s_object *self, struct s_o
       if (next_step_link)
         d_call(self, m_packet_factory_create_packet, environment, source_connectable_link->unique_code, connectable_attributes->unique_code,
             source_connectable_link);
+      else {
+        printf("Seems that I cannot reach %s from %s\n", connectable_attributes->unique_code, source_connectable_link->unique_code);
+        d_call(packet_factory_attributes->statistics, m_statistics_add_packet_not_shipped, NULL); 
+      }
     }
   }
   d_cast_return(d_drawable_return_last);
@@ -238,6 +260,7 @@ d_define_method(packet_factory, delete)(struct s_object *self, struct s_packet_f
   d_delete(attributes->connector_factory);
   d_delete(attributes->array_packets_traveling);
   d_delete(attributes->array_packets_arrived);
+  d_delete(attributes->statistics);
   while ((current_statistics = (struct s_packet_factory_statistics *)(attributes->statistics_generated.head))) {
     f_list_delete(&(attributes->statistics_generated), (struct s_list_node *)current_statistics);
     d_free(current_statistics);

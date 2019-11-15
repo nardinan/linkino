@@ -20,6 +20,15 @@
 #include "connector_factory.obj.h"
 #include "connectable_factory.obj.h"
 #include "packet_factory.obj.h"
+#include "statistics.obj.h"
+enum e_director_statistics_label {
+  e_statistics_packet_shipped = 0,
+  e_statistics_packet_lost,
+  e_statistics_spam,
+  e_statistics_average_time,
+  e_statistics_average_hops,
+  e_statistics_NULL
+};
 d_declare_class(director) {
   struct s_attributes head;
   struct s_object *environment;
@@ -28,6 +37,9 @@ d_declare_class(director) {
   struct s_object *connectable_factory;
   struct s_object *connector_factory;
   struct s_object *packet_factory;
+  struct s_object *statistics;
+  struct s_object *ui_statistics;
+  struct s_uiable_container *ui_labels[e_statistics_NULL];
 } d_declare_class_tail(director);
 struct s_director_attributes *p_director_alloc(struct s_object *self);
 extern struct s_object *f_director_new(struct s_object *self, struct s_object *environment, struct s_object *ui_factory, struct s_object *media_factory);

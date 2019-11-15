@@ -130,10 +130,26 @@ d_define_method(connector, get_point)(struct s_object *self, double percentage_p
 d_define_method(connector, is_over_line)(struct s_object *self, int position_x, int position_y, int line_start_x, int line_start_y, 
     int line_end_x, int line_end_y) {
   struct s_object *result = NULL;
-  int delta_y = (line_start_y - line_end_y), delta_x = (line_end_x - line_start_x), w = (line_start_x * line_end_y) - (line_end_x * line_start_y);
-  double distance_to_line = ((delta_y * position_x) + (delta_x * position_y) + w)/
-    f_math_sqrt(d_math_square(delta_y) + d_math_square(delta_x), d_math_default_precision);
-  if (fabs(distance_to_line) < d_connector_selected_line_distance)
+  int delta_x_A = (position_x - line_start_x),
+      delta_y_B = (position_y - line_start_y),
+      delta_x_C = (line_end_x - line_start_x),
+      delta_y_D = (line_end_y - line_start_y);
+  double dot = (delta_x_A * delta_x_C) + (delta_y_B * delta_y_D), 
+         length_square = d_math_square(delta_x_C) + d_math_square(delta_y_D),
+         parameter = -1.0, xx, yy;
+  if (length_square > 0.0)
+    parameter = (dot / length_square);
+  if (parameter < 0.0) {
+    xx = line_start_x;
+    yy = line_start_y;
+  } else if (parameter > 1.0) {
+    xx = line_end_x;
+    yy = line_end_y;
+  } else {
+    xx = line_start_x + parameter * delta_x_C;
+    yy = line_start_y + parameter * delta_y_D;
+  }
+  if (f_math_sqrt(d_math_square(position_x - xx) + d_math_square(position_y - yy), d_math_default_precision) < d_connector_selected_line_distance)
     result = self;
   return result;
 }

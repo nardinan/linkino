@@ -21,7 +21,7 @@
 #include "connectable.obj.h"
 #define d_connector_maximum_segments 10
 #define d_connector_increment_weight_per_frame 0.01
-#define d_connector_selected_line_distance 8
+#define d_connector_selected_line_distance 2
 #define d_connector_maximum_time_snap 4
 #define d_connector_minimum_time_snap 2
 #define d_connector_overload_limitation 0.75

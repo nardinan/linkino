@@ -62,6 +62,88 @@
           "height": 30
         }
       ]
+    },{
+      "label": "statistics",
+      "position_x": 10,
+      "position_y": 10,
+      "components": [
+        {
+          "label": "content_label1",
+          "kind": "label",
+          "font_id": 0,
+          "content": "Packet shipped",
+          "position_y": 0,
+          "width": 200
+        },{
+          "label": "content_label2",
+          "kind": "label",
+          "font_id": 0,
+          "content": "Packet lost",
+          "position_y": 20,
+          "width": 200
+        },{
+          "label": "content_label3",
+          "kind": "label",
+          "font_id": 0,
+          "content": "Spam at destination",
+          "position_y": 40,
+          "width": 200
+        },{
+          "label": "content_label4",
+          "kind": "label",
+          "font_id": 0,
+          "content": "AVG time to destination",
+          "position_y": 60,
+          "width": 200
+        },{
+          "label": "content_label5",
+          "kind": "label",
+          "font_id": 0,
+          "content": "AVG hops to destination",
+          "position_y": 80,
+          "width": 200
+        },{
+          "label": "result_label1",
+          "kind": "label",
+          "font_id": 0,
+          "content": "0",
+          "position_y": 0,
+          "position_x": 160,
+          "width": 40
+        },{
+          "label": "result_label2",
+          "kind": "label",
+          "font_id": 0,
+          "content": "0",
+          "position_y": 20,
+          "position_x": 160,
+          "width": 40
+        },{
+          "label": "result_label3",
+          "kind": "label",
+          "font_id": 0,
+          "content": "0",
+          "position_y": 40,
+          "position_x": 160,
+          "width": 40
+        },{
+          "label": "result_label4",
+          "kind": "label",
+          "font_id": 0,
+          "content": "0",
+          "position_y": 60,
+          "position_x": 160,
+          "width": 40
+        },{
+          "label": "result_label5",
+          "kind": "label",
+          "font_id": 0,
+          "content": "0",
+          "position_y": 80,
+          "position_x": 160,
+          "width": 40
+        }
+      ]
     }
   ]
 }
