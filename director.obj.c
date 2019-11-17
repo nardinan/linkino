@@ -51,6 +51,8 @@ extern struct s_object *f_director_new(struct s_object *self, struct s_object *e
             container, "result_label4")));
     d_assert((director_attributes->ui_labels[e_statistics_average_hops] = d_call(director_attributes->ui_factory, m_ui_factory_get_component, 
             container, "result_label5")));
+    d_assert((director_attributes->ui_labels[e_statistics_score] = d_call(director_attributes->ui_factory, m_ui_factory_get_component,
+            container, "score_label")));
     d_call(director_attributes->environment, m_environment_add_drawable, director_attributes->ui_statistics, (d_ui_factory_default_level + 1),
         e_environment_surface_primary);
   }
@@ -85,7 +87,7 @@ d_define_method_override(director, event)(struct s_object *self, struct s_object
 d_define_method_override(director, draw)(struct s_object *self, struct s_object *environment) {
   d_using(director);
   struct s_statistics_attributes *statistics_attributes = d_cast(director_attributes->statistics, statistics);
-  char buffer[d_string_buffer_size];
+  char buffer[d_string_buffer_size], score = '*';
   d_call(director_attributes->connectable_factory, m_drawable_draw, environment);
   d_call(director_attributes->connector_factory, m_drawable_draw, environment);
   d_call(director_attributes->packet_factory, m_drawable_draw, environment);
@@ -106,6 +108,9 @@ d_define_method_override(director, draw)(struct s_object *self, struct s_object 
   else
     strncpy(buffer, "0.0", d_string_buffer_size);
   d_call(director_attributes->ui_labels[e_statistics_average_hops]->uiable, m_label_set_content_char, buffer, NULL, director_attributes->environment);
+  d_call(director_attributes->statistics, m_statistics_get_score, &score);
+  snprintf(buffer, d_string_buffer_size, "class %c", score);
+  d_call(director_attributes->ui_labels[e_statistics_score]->uiable, m_label_set_content_char, buffer, NULL, director_attributes->environment);
   d_cast_return(d_drawable_return_last);
 }
 d_declare_method(director, delete)(struct s_object *self, struct s_director_attributes *attributes) {

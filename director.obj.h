@@ -27,6 +27,7 @@ enum e_director_statistics_label {
   e_statistics_spam,
   e_statistics_average_time,
   e_statistics_average_hops,
+  e_statistics_score,
   e_statistics_NULL
 };
 d_declare_class(director) {

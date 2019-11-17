@@ -25,6 +25,9 @@
 	},{
 		"font":"bobcaygr_font",
 		"size":60
+	},{
+		"font":"bobcaygr_font",
+		"size":15
 	}],
 	"ui":{
 		"field":{

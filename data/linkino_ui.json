@@ -17,7 +17,7 @@
         {
           "label": "message_line1",
           "kind": "label",
-          "font_id": 0,
+          "font_id": 3,
           "content": "You are about to sell this item for the half of its original",
           "position_y": 80,
           "alignment_x": 5,
@@ -26,7 +26,7 @@
         {
           "label": "message_line2",
           "kind": "label",
-          "font_id": 0,
+          "font_id": 3,
           "content": "price, snapping all the links currently connected to it.",
           "position_y": 100,
           "alignment_x": 5,
@@ -35,7 +35,7 @@
         {
           "label": "message_line3",
           "kind": "label",
-          "font_id": 0,
+          "font_id": 3,
           "content": "Are you sure you want to move ahead with the operation?",
           "position_y": 120,
           "alignment_x": 5,
@@ -44,7 +44,7 @@
         {
           "label": "button_ok",
           "kind": "button",
-          "font_id": 0,
+          "font_id": 3,
           "content": "OK",
           "position_y": 170,
           "position_x": 220,
@@ -54,7 +54,7 @@
         {
           "label": "button_cancel",
           "kind": "button",
-          "font_id": 0,
+          "font_id": 3,
           "content": "NOPE",
           "position_y": 170,
           "position_x": 320,
@@ -68,78 +68,86 @@
       "position_y": 10,
       "components": [
         {
+          "label": "score_label",
+          "kind": "label",
+          "font_id": 1,
+          "content": "*",
+          "position_y": 0,
+          "alignment_x": 2,
+          "width": 200
+        },{
           "label": "content_label1",
           "kind": "label",
-          "font_id": 0,
+          "font_id": 3,
           "content": "Packet shipped",
-          "position_y": 0,
+          "position_y": 40,
           "width": 200
         },{
           "label": "content_label2",
           "kind": "label",
-          "font_id": 0,
+          "font_id": 3,
           "content": "Packet lost",
-          "position_y": 20,
+          "position_y": 55,
           "width": 200
         },{
           "label": "content_label3",
           "kind": "label",
-          "font_id": 0,
+          "font_id": 3,
           "content": "Spam at destination",
-          "position_y": 40,
+          "position_y": 70,
           "width": 200
         },{
           "label": "content_label4",
           "kind": "label",
-          "font_id": 0,
+          "font_id": 3,
           "content": "AVG time to destination",
-          "position_y": 60,
+          "position_y": 85,
           "width": 200
         },{
           "label": "content_label5",
           "kind": "label",
-          "font_id": 0,
+          "font_id": 3,
           "content": "AVG hops to destination",
-          "position_y": 80,
+          "position_y": 100,
           "width": 200
         },{
           "label": "result_label1",
           "kind": "label",
-          "font_id": 0,
+          "font_id": 3,
           "content": "0",
-          "position_y": 0,
+          "position_y": 40,
           "position_x": 160,
           "width": 40
         },{
           "label": "result_label2",
           "kind": "label",
-          "font_id": 0,
+          "font_id": 3,
           "content": "0",
-          "position_y": 20,
+          "position_y": 55,
           "position_x": 160,
           "width": 40
         },{
           "label": "result_label3",
           "kind": "label",
-          "font_id": 0,
+          "font_id": 3,
           "content": "0",
-          "position_y": 40,
+          "position_y": 70,
           "position_x": 160,
           "width": 40
         },{
           "label": "result_label4",
           "kind": "label",
-          "font_id": 0,
+          "font_id": 3,
           "content": "0",
-          "position_y": 60,
+          "position_y": 85,
           "position_x": 160,
           "width": 40
         },{
           "label": "result_label5",
           "kind": "label",
-          "font_id": 0,
+          "font_id": 3,
           "content": "0",
-          "position_y": 80,
+          "position_y": 100,
           "position_x": 160,
           "width": 40
         }
