@@ -259,7 +259,15 @@ d_define_method_override(connector_factory, draw)(struct s_object *self, struct 
   }
   d_cast_return(d_drawable_return_last);
 }
-d_declare_method(connector_factory, delete)(struct s_object *self, struct s_connector_factory_attributes *attributes) {
+d_define_method(connector_factory, reset)(struct s_object *self) {
+  d_using(connector_factory);
+  struct s_object *current_connector;
+  d_array_foreach(connector_factory_attributes->array_of_connectors, current_connector)
+    d_call(current_connector, m_connector_destroy_links, NULL);
+  d_call(connector_factory_attributes->array_of_connectors, m_array_clear, NULL);
+  return self;
+}
+d_define_method(connector_factory, delete)(struct s_object *self, struct s_connector_factory_attributes *attributes) {
   if (attributes->array_of_connectors)
     d_delete(attributes->array_of_connectors);
   if (attributes->drawable)
@@ -277,5 +285,7 @@ d_define_class(connector_factory) {d_hook_method(connector_factory, e_flag_publi
   d_hook_method(connector_factory, e_flag_public, force_snap),
   d_hook_method_override(connector_factory, e_flag_public, eventable, event),
   d_hook_method_override(connector_factory, e_flag_public, drawable, draw),
+  d_hook_method(connector_factory, e_flag_public, reset),
   d_hook_delete(connector_factory),
-  d_hook_method_tail};
+  d_hook_method_tail
+};

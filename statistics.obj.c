@@ -84,11 +84,23 @@ d_define_method(statistics, get_score)(struct s_object *self, char *character) {
   }
   return self;
 }
+d_define_method(statistics, reset)(struct s_object *self) {
+  d_using(statistics);
+  statistics_attributes->packet_not_shipped = 0;
+  statistics_attributes->packet_lost = 0;
+  statistics_attributes->packet_shipped = 0;
+  statistics_attributes->spam_shipped = 0;
+  statistics_attributes->connector_snapped = 0;
+  statistics_attributes->sum_packet_hops = 0;
+  statistics_attributes->sum_packet_times = 0;
+  return self;
+}
 d_define_class(statistics) { d_hook_method(statistics, e_flag_public, add_packet_not_shipped),
   d_hook_method(statistics, e_flag_public, add_packet_lost),
   d_hook_method(statistics, e_flag_public, add_packet_shipped),
   d_hook_method(statistics, e_flag_public, add_spam_shipped),
   d_hook_method(statistics, e_flag_public, add_connector_snapped),
   d_hook_method(statistics, e_flag_public, get_score),
+  d_hook_method(statistics, e_flag_public, reset),
   d_hook_method_tail
 };

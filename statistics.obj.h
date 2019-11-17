@@ -31,5 +31,5 @@ d_declare_method(statistics, add_packet_shipped)(struct s_object *self, time_t t
 d_declare_method(statistics, add_spam_shipped)(struct s_object *self);
 d_declare_method(statistics, add_connector_snapped)(struct s_object *self);
 d_declare_method(statistics, get_score)(struct s_object *self, char *character);
-d_declare_method(statistics, delete)(struct s_object *self, struct s_statistics_attributes *attributes);
+d_declare_method(statistics, reset)(struct s_object *self);
 #endif

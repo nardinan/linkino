@@ -73,7 +73,7 @@ struct s_connectable_attributes *p_connectable_alloc(struct s_object *self, stru
   return result;
 }
 extern struct s_object *f_connectable_new(struct s_object *self, struct s_object *stream, struct s_object *environment, struct s_object *ui_factory, 
-    t_boolean use_human_name) {
+    t_boolean use_human_name, t_boolean block_spam) {
   struct s_connectable_attributes *connectable_attributes = p_connectable_alloc(self, stream, environment);
   memset(&(connectable_attributes->list_connection_nodes), 0, sizeof(struct s_list));
   if (use_human_name) {
@@ -84,11 +84,21 @@ extern struct s_object *f_connectable_new(struct s_object *self, struct s_object
     for (unsigned int index = 0; index < (d_connectable_code_size - 1); ++index)
       connectable_attributes->unique_code[index] = ((rand() % (((char)'Z') - ((char)'A'))) + (char)'A');
   }
+  connectable_attributes->seconds_between_generation_minimum = d_connectable_min_seconds_between_generation;
+  connectable_attributes->seconds_between_generation_maximum = d_connectable_max_seconds_between_generation;
+  connectable_attributes->block_spam = block_spam;
   return self;
 }
 d_define_method(connectable, set_generate_traffic)(struct s_object *self, t_boolean generate_traffic) {
   d_using(connectable);
   connectable_attributes->generate_traffic = generate_traffic;
+  return self;
+}
+d_define_method(connectable, set_generate_traffic_speed)(struct s_object *self, time_t minimum_seconds_between_traffic,
+    time_t maximum_seconds_between_traffic) {
+  d_using(connectable);
+  connectable_attributes->seconds_between_generation_minimum = minimum_seconds_between_traffic;
+  connectable_attributes->seconds_between_generation_maximum = maximum_seconds_between_traffic;
   return self;
 }
 d_define_method(connectable, add_connection_point)(struct s_object *self, double offset_x, double offset_y, const char *label) {
@@ -102,6 +112,7 @@ d_define_method(connectable, add_connection_point)(struct s_object *self, double
     connectable_link->connectable = self; /* a reentrant point to access the object through the link */
     strncpy(connectable_link->label, label, d_string_buffer_size);
     strncpy(connectable_link->unique_code, connectable_attributes->unique_code, d_connectable_code_size);
+    memset(connectable_link->traveling_packets, 0, sizeof(struct s_object *) * d_connectable_max_packets);
     f_list_append(&(connectable_attributes->list_connection_nodes), (struct s_list_node *)connectable_link, e_list_insert_tail);
   } else
     d_die(d_error_malloc);
@@ -128,7 +139,8 @@ d_define_method(connectable, is_traffic_generation_required)(struct s_object *se
       }
       /* we need to select, randomly, one of the connectables of the node */
       connectable_attributes->next_token_generation = current_timestamp + 
-        (rand() % (d_connectable_max_seconds_between_generation - d_connectable_min_seconds_between_generation)) + d_connectable_min_seconds_between_generation;
+        (rand() % (connectable_attributes->seconds_between_generation_maximum - connectable_attributes->seconds_between_generation_minimum)) +
+        connectable_attributes->seconds_between_generation_minimum;
     }
   }
   d_cast_return(result);
@@ -226,11 +238,17 @@ d_define_method(connectable, delete)(struct s_object *self, struct s_connectable
   struct s_connectable_link *current_element;
   while ((current_element = (struct s_connectable_link *)attributes->list_connection_nodes.head)) {
     f_list_delete(&(attributes->list_connection_nodes), (struct s_list_node *)current_element);
+    for (unsigned int index = 0; index < d_connectable_max_packets; ++index)
+      if (current_element->traveling_packets[index]) {
+        d_delete(current_element->traveling_packets[index]);
+        current_element->traveling_packets[index] = NULL;
+      }
     d_free(current_element);
   }
   return NULL;
 }
 d_define_class(connectable) {d_hook_method(connectable, e_flag_public, set_generate_traffic),
+  d_hook_method(connectable, e_flag_public, set_generate_traffic_speed),
   d_hook_method(connectable, e_flag_public, add_connection_point),
   d_hook_method(connectable, e_flag_public, is_traffic_generation_required),
   d_hook_method(connectable, e_flag_public, get_selected_node),

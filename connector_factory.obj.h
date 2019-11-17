@@ -42,5 +42,6 @@ d_declare_method(connector_factory, check_snapped)(struct s_object *self);
 d_declare_method(connector_factory, force_snap)(struct s_object *self, struct s_object *connector);
 d_declare_method(connector_factory, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event);
 d_declare_method(connector_factory, draw)(struct s_object *self, struct s_object *environment);
+d_declare_method(connector_factory, reset)(struct s_object *self);
 d_declare_method(connector_factory, delete)(struct s_object *self, struct s_connector_factory_attributes *attributes);
 #endif

@@ -49,16 +49,16 @@ d_define_method(packet_factory, create_packet)(struct s_object *self, struct s_o
     /* first of all we need to check if the statistics of the connector has been already prepared */
     if (((drawable_icon = d_call(packet_factory_attributes->media_factory, m_media_factory_get_media, "mail_icon", &type))) &&
         ((drawable_background = d_call(packet_factory_attributes->media_factory, m_media_factory_get_media, "mail_background", &type)))) {
-      struct s_object *link;
+      struct s_object *packet;
       int packet_flag = ((((rand() % 100) + 1) > (100 - d_packet_factory_spam_percentage))?d_packet_spam:0);
-      if ((link = f_packet_new(d_new(packet), packet_factory_attributes->ui_factory, drawable_icon, drawable_background, 
+      if ((packet = f_packet_new(d_new(packet), packet_factory_attributes->ui_factory, drawable_icon, drawable_background, 
               "<EMPTY BODY />", packet_flag))) {
         struct s_connector_attributes *connector_attributes = d_cast(connector, connector);
         struct s_connectable_link *outgoing_connectable_link = ((connector_attributes->source_link == ingoing_connectable_link)?
             connector_attributes->destination_link:connector_attributes->source_link);
-        d_call(link, m_packet_set_traveling, connector, ingoing_connectable_link, outgoing_connectable_link, unique_code_source, unique_code_destination);
-        d_call(packet_factory_attributes->array_packets_traveling, m_array_push, link);
-        d_delete(link);
+        d_call(packet, m_packet_set_traveling, connector, ingoing_connectable_link, outgoing_connectable_link, unique_code_source, unique_code_destination);
+        d_call(packet_factory_attributes->array_packets_traveling, m_array_push, packet);
+        d_delete(packet);
       }
     }
   }
@@ -77,7 +77,12 @@ d_define_method(packet_factory, forward_packet)(struct s_object *self, struct s_
         (packet_attributes->outgoing_connectable_link) &&
         (packet_attributes->outgoing_connectable_link->connectable) &&
         (packet_attributes->outgoing_connectable_link->connector)) {
-      if ((f_string_strcmp(packet_attributes->unique_final_destination, packet_attributes->outgoing_connectable_link->unique_code) != 0)) {
+      struct s_connectable_attributes *connectable_attributes = d_cast(packet_attributes->outgoing_connectable_link->connectable, connectable);
+      if (((packet_attributes->flags & d_packet_spam) == d_packet_spam) && (connectable_attributes->block_spam)) {
+        /* we need to block the packet: it has been blocked by the node */
+        packet_attributes->ingoing_connectable_link = NULL;
+        packet_attributes->outgoing_connectable_link = NULL;
+      } else if ((f_string_strcmp(packet_attributes->unique_final_destination, packet_attributes->outgoing_connectable_link->unique_code) != 0)) {
         struct s_connectable_attributes *connectable_attributes = d_cast(packet_attributes->outgoing_connectable_link->connectable, connectable);
         struct s_connectable_link *current_connectable_link, *next_connectable_link, *selected_ingoing_connectable_link = NULL,
                                   *selected_outgoing_connectable_link = NULL;
@@ -252,6 +257,12 @@ d_define_method_override(packet_factory, draw)(struct s_object *self, struct s_o
   }
   d_cast_return(d_drawable_return_last);
 }
+d_define_method(packet_factory, reset)(struct s_object *self) {
+  d_using(packet_factory);
+  d_call(packet_factory_attributes->array_packets_arrived, m_array_clear, NULL);
+  d_call(packet_factory_attributes->array_packets_traveling, m_array_clear, NULL);
+  return self;
+}
 d_define_method(packet_factory, delete)(struct s_object *self, struct s_packet_factory_attributes *attributes) {
   struct s_packet_factory_statistics *current_statistics;
   d_delete(attributes->ui_factory);
@@ -273,4 +284,5 @@ d_define_class(packet_factory) {d_hook_method(packet_factory, e_flag_public, cre
   d_hook_method(packet_factory, e_flag_public, update_connector_weights),
   d_hook_method_override(packet_factory, e_flag_public, eventable, event),
   d_hook_method_override(packet_factory, e_flag_public, drawable, draw),
+  d_hook_method(packet_factory, e_flag_public, reset),
   d_hook_delete(packet_factory)};

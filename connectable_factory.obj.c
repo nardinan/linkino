@@ -72,7 +72,7 @@ struct s_object *f_connectable_factory_new(struct s_object *self, struct s_objec
   return self;
 }
 d_define_method(connectable_factory, add_connectable_template)(struct s_object *self, struct s_object *stream, const char *title, const char *description,
-    double *offsets_x, double *offsets_y, size_t connections, t_boolean generate_traffic) {
+    double *offsets_x, double *offsets_y, size_t connections, t_boolean generate_traffic, t_boolean filter_spam) {
   d_using(connectable_factory);
   if (connections <= d_connectable_factory_connections) {
     struct s_connectable_factory_template *current_template;
@@ -83,6 +83,7 @@ d_define_method(connectable_factory, add_connectable_template)(struct s_object *
       memcpy(current_template->offsets_x, offsets_x, (sizeof(double) * connections));
       memcpy(current_template->offsets_y, offsets_y, (sizeof(double) * connections));
       current_template->generate_traffic = generate_traffic;
+      current_template->filter_spam = filter_spam;
       current_template->connections = connections;
       if ((current_template->uiable_button =
             d_call(connectable_factory_attributes->ui_factory, m_ui_factory_new_button, d_ui_factory_default_font_id, d_ui_factory_default_font_style,
@@ -141,12 +142,14 @@ d_define_method(connectable_factory, click_received_sell)(struct s_object *self)
       if (current_connectable == connectable_factory_attributes->delete_connectable) {
         struct s_connectable_attributes *connectable_attributes = d_cast(current_connectable, connectable);
         struct s_connectable_link *current_link;
+        struct s_object *current_packet;
         /* we unlink all the connectors that are currently linked to this specific node */
         d_foreach(&(connectable_attributes->list_connection_nodes), current_link, struct s_connectable_link) {
           for (size_t index = 0; index < d_connectable_max_packets; ++index) 
-            if (current_link->traveling_packets[index]) {
-              d_call(current_link->traveling_packets[index], m_packet_destroy_links, NULL);
+            if ((current_packet = current_link->traveling_packets[index])) {
               current_link->traveling_packets[index] = NULL;
+              d_call(current_packet, m_packet_destroy_links, NULL);
+              d_delete(current_packet);
             }
           if (current_link->connector) {
             d_call(current_link->connector, m_connector_destroy_links, NULL);
@@ -208,7 +211,8 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
       struct s_object *connectable =
         f_connectable_new(d_new(connectable), connectable_factory_attributes->active_template->stream, 
             connectable_factory_attributes->environment, connectable_factory_attributes->ui_factory, 
-            ((connectable_factory_attributes->active_template->generate_traffic)?d_true:d_false));
+            ((connectable_factory_attributes->active_template->generate_traffic)?d_true:d_false), 
+            connectable_factory_attributes->active_template->filter_spam);
       d_call(connectable, m_connectable_set_generate_traffic, connectable_factory_attributes->active_template->generate_traffic);
       d_call(connectable, m_drawable_set_position, connectable_factory_attributes->active_template->position_x,
           connectable_factory_attributes->active_template->position_y);
@@ -310,6 +314,38 @@ d_define_method_override(connectable_factory, draw)(struct s_object *self, struc
   }
   d_cast_return(d_drawable_return_last);
 }
+d_define_method(connectable_factory, reset)(struct s_object *self) {
+  d_using(connectable_factory);
+  struct s_object *current_connectable;
+  d_array_foreach(connectable_factory_attributes->array_connectable_instances, current_connectable) {
+    struct s_connectable_attributes *connectable_attributes = d_cast(current_connectable, connectable);
+    struct s_connectable_link *current_link;
+    struct s_object *current_packet;
+    /* we unlink all the connectors that are currently linked to this specific node */
+    d_foreach(&(connectable_attributes->list_connection_nodes), current_link, struct s_connectable_link) {
+      for (size_t index = 0; index < d_connectable_max_packets; ++index) 
+        if ((current_packet = current_link->traveling_packets[index])) {
+          current_link->traveling_packets[index] = NULL;
+          d_call(current_packet, m_packet_destroy_links, NULL);
+          d_delete(current_packet);
+        }
+      if (current_link->connector) {
+        d_call(current_link->connector, m_connector_destroy_links, NULL);
+        current_link->connector = NULL;
+      }
+    }
+  }
+  d_call(connectable_factory_attributes->array_connectable_instances, m_array_clear, NULL);
+  if (connectable_factory_attributes->ui_sell_confirmation_visible) {
+    d_call(connectable_factory_attributes->environment, m_environment_del_drawable, connectable_factory_attributes->ui_sell_confirmation, 
+        (d_ui_factory_default_level + 1), e_environment_surface_primary);
+    connectable_factory_attributes->ui_sell_confirmation_visible = d_false;
+  }
+  connectable_factory_attributes->active_connectable = NULL;
+  connectable_factory_attributes->delete_connectable = NULL;
+  connectable_factory_attributes->active_node = NULL;
+  return self;
+}
 d_define_method(connectable_factory, delete)(struct s_object *self, struct s_connectable_factory_attributes *attributes) {
   struct s_connectable_factory_template *current_template;
   while ((current_template = (struct s_connectable_factory_template *)attributes->list_templates.head)) {
@@ -329,5 +365,7 @@ d_define_class(connectable_factory) {d_hook_method(connectable_factory, e_flag_p
   d_hook_method(connectable_factory, e_flag_public, click_received_cancel),
   d_hook_method_override(connectable_factory, e_flag_public, eventable, event),
   d_hook_method_override(connectable_factory, e_flag_public, drawable, draw),
+  d_hook_method(connectable_factory, e_flag_public, reset),
   d_hook_delete(connectable_factory),
-  d_hook_method_tail};
+  d_hook_method_tail
+};
