@@ -47,7 +47,7 @@ d_declare_class(connectable) {
   t_boolean draw_rectangle, normalized, generate_traffic, block_spam;
   time_t next_token_generation, seconds_between_generation_minimum, seconds_between_generation_maximum;
   char unique_code[d_connectable_code_size];
-  unsigned int price;
+  double price;
 } d_declare_class_tail(connectable);
 struct s_connectable_attributes *p_connectable_alloc(struct s_object *self, struct s_object *stream, struct s_object *environment);
 extern struct s_object *f_connectable_new(struct s_object *self, struct s_object *stream, struct s_object *environment, struct s_object *ui_factory,
@@ -55,7 +55,7 @@ extern struct s_object *f_connectable_new(struct s_object *self, struct s_object
 d_declare_method(connectable, set_generate_traffic)(struct s_object *self, t_boolean generate_traffic);
 d_declare_method(connectable, set_generate_traffic_speed)(struct s_object *self, time_t minimum_seconds_between_traffic,
     time_t maximum_seconds_between_traffic);
-d_declare_method(connectable, set_price)(struct s_object *self, unsigned int price);
+d_declare_method(connectable, set_price)(struct s_object *self, double price);
 d_declare_method(connectable, add_connection_point)(struct s_object *self, double offset_x, double offset_y, const char *label);
 d_declare_method(connectable, get_selected_node)(struct s_object *self);
 d_declare_method(connectable, is_traffic_generation_required)(struct s_object *self);

@@ -20,7 +20,7 @@
           "font_id": 3,
           "content": "You are about to sell this item for the half of its original",
           "position_y": 80,
-          "alignment_x": 5,
+          "alignment_x": 0,
           "width": 400
         },
         {
@@ -29,7 +29,7 @@
           "font_id": 3,
           "content": "price, snapping all the links currently connected to it.",
           "position_y": 100,
-          "alignment_x": 5,
+          "alignment_x": 0,
           "width": 400
         },
         {
@@ -38,7 +38,7 @@
           "font_id": 3,
           "content": "Are you sure you want to move ahead with the operation?",
           "position_y": 120,
-          "alignment_x": 5,
+          "alignment_x": 0,
           "width": 400
         },
         {
@@ -60,6 +60,25 @@
           "position_x": 320,
           "width": 80,
           "height": 30
+        }
+      ]
+    },{
+      "label": "balance",
+      "position_x": 600,
+      "position_y": 450,
+      "components": [
+        { "label": "balance_label",
+          "kind": "label",
+          "font_id": 0,
+          "content": "$"
+        },{
+          "label": "balance_value",
+          "kind": "label",
+          "font_id": 0,
+          "content": "200000.00",
+          "position_x": 20,
+          "alignment_x": 3,
+          "width": 80
         }
       ]
     },{
