@@ -2,7 +2,7 @@
   "root": [
     {
       "label": "confirmation_sell",
-      "position_x": 100,
+      "position_x": 200,
       "position_y": 100,
       "components": [
         {
@@ -11,8 +11,9 @@
           "font_id": 1,
           "content": "Just to be sure ...",
           "position_y": 20,
-          "alignment_x": 5,
-          "width": 380
+          "position_x": 10,
+          "alignment_x": 0,
+          "width": 200
         },
         {
           "label": "message_line1",
@@ -20,8 +21,9 @@
           "font_id": 3,
           "content": "You are about to sell this item for the half of its original",
           "position_y": 80,
-          "alignment_x": 5,
-          "width": 400
+          "position_x": 10,
+          "alignment_x": 0,
+          "width": 350
         },
         {
           "label": "message_line2",
@@ -29,8 +31,9 @@
           "font_id": 3,
           "content": "price, snapping all the links currently connected to it.",
           "position_y": 100,
-          "alignment_x": 5,
-          "width": 400
+          "position_x": 10,
+          "alignment_x": 0,
+          "width": 350
         },
         {
           "label": "message_line3",
@@ -38,16 +41,17 @@
           "font_id": 3,
           "content": "Are you sure you want to move ahead with the operation?",
           "position_y": 120,
-          "alignment_x": 5,
-          "width": 400
+          "position_x": 10,
+          "alignment_x": 0,
+          "width": 350
         },
         {
           "label": "button_ok",
           "kind": "button",
           "font_id": 3,
           "content": "OK",
-          "position_y": 170,
-          "position_x": 220,
+          "position_y": 150,
+          "position_x": 190,
           "width": 80,
           "height": 30
         },
@@ -56,10 +60,29 @@
           "kind": "button",
           "font_id": 3,
           "content": "NOPE",
-          "position_y": 170,
-          "position_x": 320,
+          "position_y": 150,
+          "position_x": 270,
           "width": 80,
           "height": 30
+        }
+      ]
+    },{
+      "label": "balance",
+      "position_x": 600,
+      "position_y": 450,
+      "components": [
+        { "label": "balance_label",
+          "kind": "label",
+          "font_id": 0,
+          "content": "$"
+        },{
+          "label": "balance_value",
+          "kind": "label",
+          "font_id": 0,
+          "content": "200000.00",
+          "position_x": 20,
+          "alignment_x": 3,
+          "width": 80
         }
       ]
     },{

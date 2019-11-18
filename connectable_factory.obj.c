@@ -18,12 +18,11 @@
 #include "connectable_factory.obj.h"
 #include "connector.obj.h"
 #include "packet.obj.h"
+#include <miranda/objects/media/ui/label.obj.h>
 void p_connectable_factory_click_create(struct s_object *self, void **parameters, size_t entries) {
   struct s_object *connectable_factory = (struct s_object *)parameters[0];
   struct s_connectable_factory_template *current_template = (struct s_connectable_factory_template *)parameters[1];
-  struct s_object *ui_button = (struct s_object *)parameters[2];
   d_call(connectable_factory, m_connectable_factory_click_received_create, current_template);
-  d_call(ui_button, m_uiable_mode, e_uiable_mode_idle);
 }
 void p_connectable_factory_click_sell(struct s_object *self, void **parameters, size_t entries) {
   struct s_object *connectable_factory = (struct s_object *)parameters[0];
@@ -54,12 +53,15 @@ struct s_object *f_connectable_factory_new(struct s_object *self, struct s_objec
   struct s_uiable_container *container;
   connectable_factory_attributes->ui_factory = d_retain(ui_factory);
   connectable_factory_attributes->environment = d_retain(environment);
+  connectable_factory_attributes->mask_credit_red = 255.0;
+  connectable_factory_attributes->mask_credit_green = 255.0;
+  connectable_factory_attributes->mask_credit_blue = 255.0;
   memset(&(connectable_factory_attributes->list_templates), 0, sizeof(struct s_list));
   d_assert(connectable_factory_attributes->array_connectable_instances = f_array_new(d_new(array), d_array_bucket));
   if ((container = d_call(connectable_factory_attributes->ui_factory, m_ui_factory_get_component, NULL, "confirmation_sell"))) {
     struct s_uiable_container *button_ok, *button_cancel;
     struct s_eventable_attributes *eventable_attributes = d_cast(container->uiable, eventable);
-    connectable_factory_attributes->ui_sell_confirmation = container->uiable;
+    connectable_factory_attributes->ui_container_sell_confirmation = container->uiable;
     d_assert(button_ok = d_call(connectable_factory_attributes->ui_factory, m_ui_factory_get_component, container, "button_ok"));
     d_call(button_ok->uiable, m_emitter_embed_parameter, "clicked_left", self);
     d_call(button_ok->uiable, m_emitter_embed_parameter, "clicked_left", button_ok->uiable);
@@ -69,12 +71,20 @@ struct s_object *f_connectable_factory_new(struct s_object *self, struct s_objec
     d_call(button_cancel->uiable, m_emitter_embed_parameter, "clicked_left", button_cancel->uiable);
     d_call(button_cancel->uiable, m_emitter_embed_function, "clicked_left", p_connectable_factory_click_cancel);
     eventable_attributes->ignore_event_if_consumed = d_false;
+    if ((container = d_call(connectable_factory_attributes->ui_factory, m_ui_factory_get_component, NULL, "balance"))) {
+      struct s_uiable_container *label_bank;
+      d_assert(label_bank = d_call(connectable_factory_attributes->ui_factory, m_ui_factory_get_component, container, "balance_value"));
+      connectable_factory_attributes->ui_container_bank_balance = container->uiable;
+      connectable_factory_attributes->ui_label_bank_balance = label_bank->uiable;
+      d_call(connectable_factory_attributes->environment, m_environment_add_drawable, connectable_factory_attributes->ui_container_bank_balance,
+          d_ui_factory_default_level, e_environment_surface_primary);
+    }
   } else
     d_die(d_error_malloc);
   return self;
 }
 d_define_method(connectable_factory, add_connectable_template)(struct s_object *self, struct s_object *stream, const char *title, const char *description,
-    double *offsets_x, double *offsets_y, size_t connections, unsigned int price, t_boolean generate_traffic, t_boolean filter_spam) {
+    double *offsets_x, double *offsets_y, size_t connections, double price, t_boolean generate_traffic, t_boolean filter_spam) {
   d_using(connectable_factory);
   if (connections <= d_connectable_factory_connections) {
     struct s_connectable_factory_template *current_template;
@@ -93,7 +103,6 @@ d_define_method(connectable_factory, add_connectable_template)(struct s_object *
               current_template->title))) {
         d_call(current_template->uiable_button, m_emitter_embed_parameter, "clicked_left", self);
         d_call(current_template->uiable_button, m_emitter_embed_parameter, "clicked_left", current_template);
-        d_call(current_template->uiable_button, m_emitter_embed_parameter, "clicked_left", current_template->uiable_button);
         d_call(current_template->uiable_button, m_emitter_embed_function, "clicked_left", p_connectable_factory_click_create);
         d_call(current_template->uiable_button, m_drawable_set_dimension, d_connectable_factory_button_width, d_connectable_factory_button_height);
         if ((current_template->drawable_icon = f_bitmap_new(d_new(bitmap), current_template->stream, connectable_factory_attributes->environment))) {
@@ -112,7 +121,7 @@ d_define_method(connectable_factory, set_connector_selected)(struct s_object *se
   connectable_factory_attributes->connector_selected = selected;
   return self;
 }
-d_define_method(connectable_factory, set_credit)(struct s_object *self, unsigned int credit) {
+d_define_method(connectable_factory, set_credit)(struct s_object *self, double credit) {
   d_using(connectable_factory);
   connectable_factory_attributes->current_credit = credit;
   return self;
@@ -139,7 +148,11 @@ d_define_method(connectable_factory, click_received_create)(struct s_object *sel
   d_using(connectable_factory);
   if (!connectable_factory_attributes->active_template)
     if (template->price <= connectable_factory_attributes->current_credit) {
-      connectable_factory_attributes->current_credit -= template->price;
+      if (template->price > 0) {
+        connectable_factory_attributes->current_credit -= template->price;
+        connectable_factory_attributes->mask_credit_blue = 0.0;
+        connectable_factory_attributes->mask_credit_green = 0.0;
+      }
       connectable_factory_attributes->active_template = template;
     }
   return self;
@@ -169,23 +182,27 @@ d_define_method(connectable_factory, click_received_sell)(struct s_object *self)
           }
         }
         /* we give back to our bank account half of the price of the tool */
-        connectable_factory_attributes->current_credit += (connectable_attributes->price / 2.0);
+        if (connectable_attributes->price > 0) {
+          connectable_factory_attributes->current_credit += (connectable_attributes->price / 2.0);
+          connectable_factory_attributes->mask_credit_blue = 0.0;
+          connectable_factory_attributes->mask_credit_red = 0.0;
+        }
         d_call(connectable_factory_attributes->array_connectable_instances, m_array_remove, index);
         d_call(connectable_factory_attributes->array_connectable_instances, m_array_shrink, NULL);
         break;
       }
   connectable_factory_attributes->delete_connectable = NULL;
-  d_call(connectable_factory_attributes->environment, m_environment_del_drawable, connectable_factory_attributes->ui_sell_confirmation, 
+  d_call(connectable_factory_attributes->environment, m_environment_del_drawable, connectable_factory_attributes->ui_container_sell_confirmation, 
       (d_ui_factory_default_level + 1), e_environment_surface_primary);
-  connectable_factory_attributes->ui_sell_confirmation_visible = d_false;
+  connectable_factory_attributes->ui_container_sell_confirmation_visible = d_false;
   return self;
 }
 d_define_method(connectable_factory, click_received_cancel)(struct s_object *self) {
   d_using(connectable_factory);
   connectable_factory_attributes->delete_connectable = NULL;
-  d_call(connectable_factory_attributes->environment, m_environment_del_drawable, connectable_factory_attributes->ui_sell_confirmation, 
+  d_call(connectable_factory_attributes->environment, m_environment_del_drawable, connectable_factory_attributes->ui_container_sell_confirmation, 
       (d_ui_factory_default_level + 1), e_environment_surface_primary);
-  connectable_factory_attributes->ui_sell_confirmation_visible = d_false;
+  connectable_factory_attributes->ui_container_sell_confirmation_visible = d_false;
   return self;
 }
 d_define_method_override(connectable_factory, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event) {
@@ -207,10 +224,10 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
     /* we have an object that is supposed to be deleted. For the time being there is nothing to do, we can just ignore. However we should mark the 
      * event as "changed"  because we don't want anybody else to do it
      */
-    if (!connectable_factory_attributes->ui_sell_confirmation_visible) {
-      d_call(connectable_factory_attributes->environment, m_environment_add_drawable, connectable_factory_attributes->ui_sell_confirmation,
+    if (!connectable_factory_attributes->ui_container_sell_confirmation_visible) {
+      d_call(connectable_factory_attributes->environment, m_environment_add_drawable, connectable_factory_attributes->ui_container_sell_confirmation,
           (d_ui_factory_default_level + 1), e_environment_surface_primary);
-      connectable_factory_attributes->ui_sell_confirmation_visible = d_true;
+      connectable_factory_attributes->ui_container_sell_confirmation_visible = d_true;
     }
     changed = d_true;
   } else if (connectable_factory_attributes->active_connectable) {
@@ -290,6 +307,7 @@ d_define_method_override(connectable_factory, draw)(struct s_object *self, struc
   struct s_object *current_connectable;
   double position_y = 0, position_x = (camera_attributes->scene_reference_w - d_connectable_factory_button_width - 1), image_width, image_height;
   int mouse_x, mouse_y;
+  char buffer[d_string_buffer_size];
   d_call(environment, m_environment_get_mouse_normalized, "draw_camera", &mouse_x, &mouse_y);
   if (connectable_factory_attributes->active_connectable) {
     d_call(connectable_factory_attributes->active_connectable, m_drawable_get_dimension, &image_width, &image_height);
@@ -302,6 +320,7 @@ d_define_method_override(connectable_factory, draw)(struct s_object *self, struc
             camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
             camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
       while (((intptr_t)d_call(current_template->uiable_button, m_drawable_draw, environment)) == d_drawable_return_continue);
+    d_call(current_template->uiable_button, m_uiable_mode, e_uiable_mode_idle);
     position_y += (d_connectable_factory_button_height + 1);
   }
   d_array_foreach(connectable_factory_attributes->array_connectable_instances, current_connectable) {
@@ -319,7 +338,8 @@ d_define_method_override(connectable_factory, draw)(struct s_object *self, struc
     d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_get_dimension, &image_width, &image_height);
     connectable_factory_attributes->active_template->position_x = mouse_x - (image_width / 2.0);
     connectable_factory_attributes->active_template->position_y = mouse_y - (image_height / 2.0);
-    d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_set_position, connectable_factory_attributes->active_template->position_x,
+    d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_set_position, 
+        connectable_factory_attributes->active_template->position_x,
         connectable_factory_attributes->active_template->position_y);
     d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_set_maskA, d_connectable_factory_alpha);
     if ((d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_normalize_scale, camera_attributes->scene_reference_w,
@@ -327,6 +347,15 @@ d_define_method_override(connectable_factory, draw)(struct s_object *self, struc
             camera_attributes->scene_center_y, camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
       while (((intptr_t)d_call(connectable_factory_attributes->active_template->drawable_icon, m_drawable_draw, environment)) == d_drawable_return_continue);
   }
+  connectable_factory_attributes->mask_credit_red = d_math_min(connectable_factory_attributes->mask_credit_red + d_connectable_factory_mask_step, 255.0);
+  connectable_factory_attributes->mask_credit_green = d_math_min(connectable_factory_attributes->mask_credit_green + d_connectable_factory_mask_step, 255.0);
+  connectable_factory_attributes->mask_credit_blue = d_math_min(connectable_factory_attributes->mask_credit_blue + d_connectable_factory_mask_step, 255.0);
+  snprintf(buffer, d_string_buffer_size, "%.02f", connectable_factory_attributes->current_credit);
+  d_call(connectable_factory_attributes->ui_label_bank_balance, m_label_set_content_char, buffer, NULL, connectable_factory_attributes->environment);
+  d_call(connectable_factory_attributes->ui_label_bank_balance, m_drawable_set_maskRGB, 
+      (unsigned int)connectable_factory_attributes->mask_credit_red,
+      (unsigned int)connectable_factory_attributes->mask_credit_green,
+      (unsigned int)connectable_factory_attributes->mask_credit_blue);
   d_cast_return(d_drawable_return_last);
 }
 d_define_method(connectable_factory, reset)(struct s_object *self) {
@@ -351,10 +380,10 @@ d_define_method(connectable_factory, reset)(struct s_object *self) {
     }
   }
   d_call(connectable_factory_attributes->array_connectable_instances, m_array_clear, NULL);
-  if (connectable_factory_attributes->ui_sell_confirmation_visible) {
-    d_call(connectable_factory_attributes->environment, m_environment_del_drawable, connectable_factory_attributes->ui_sell_confirmation, 
+  if (connectable_factory_attributes->ui_container_sell_confirmation_visible) {
+    d_call(connectable_factory_attributes->environment, m_environment_del_drawable, connectable_factory_attributes->ui_container_sell_confirmation, 
         (d_ui_factory_default_level + 1), e_environment_surface_primary);
-    connectable_factory_attributes->ui_sell_confirmation_visible = d_false;
+    connectable_factory_attributes->ui_container_sell_confirmation_visible = d_false;
   }
   connectable_factory_attributes->active_connectable = NULL;
   connectable_factory_attributes->delete_connectable = NULL;
@@ -369,6 +398,7 @@ d_define_method(connectable_factory, delete)(struct s_object *self, struct s_con
     d_free(current_template);
     f_list_delete(&(attributes->list_templates), (struct s_list_node *)attributes->list_templates.head);
   }
+  d_delete(attributes->ui_factory);
   return NULL;
 }
 d_define_class(connectable_factory) {d_hook_method(connectable_factory, e_flag_public, add_connectable_template),

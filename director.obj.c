@@ -56,10 +56,12 @@ extern struct s_object *f_director_new(struct s_object *self, struct s_object *e
     d_call(director_attributes->environment, m_environment_add_drawable, director_attributes->ui_statistics, (d_ui_factory_default_level + 1),
         e_environment_surface_primary);
   }
+  /* test */
+  d_call(director_attributes->connectable_factory, m_connectable_factory_set_credit, 600.0);
   return self;
 }
 d_define_method(director, add_node)(struct s_object *self, const char *stream_icon_label, const char *title, const char *description, double *offsets_x,
-    double *offsets_y, size_t connections, unsigned int price, t_boolean generate_traffic, t_boolean filter_spam) {
+    double *offsets_y, size_t connections, double price, t_boolean generate_traffic, t_boolean filter_spam) {
   d_using(director);
   struct s_object *stream;
   struct s_media_factory_attributes *media_factory_attributes = d_cast(director_attributes->media_factory, media_factory);

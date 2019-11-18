@@ -101,7 +101,7 @@ d_define_method(connectable, set_generate_traffic_speed)(struct s_object *self, 
   connectable_attributes->seconds_between_generation_maximum = maximum_seconds_between_traffic;
   return self;
 }
-d_define_method(connectable, set_price)(struct s_object *self, unsigned int price) {
+d_define_method(connectable, set_price)(struct s_object *self, double price) {
   d_using(connectable);
   connectable_attributes->price = price;
   return self;
