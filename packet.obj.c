@@ -41,21 +41,22 @@ d_define_method(packet, set_traveling)(struct s_object *self, struct s_object *c
     struct s_connectable_link *outgoing_connectable_link, const char *unique_initial_source, const char *unique_final_destination) {
   d_using(packet);
   struct s_connector_attributes *connector_attributes = d_cast(connector_traveling, connector);
+  struct s_object *current_packet;
   packet_attributes->traveling = d_true;
   if (packet_attributes->connector_traveling)
     d_delete(packet_attributes->connector_traveling);
   packet_attributes->connector_traveling = d_retain(connector_traveling);
   if (packet_attributes->ingoing_connectable_link)
     for (size_t index = 0; index < d_connectable_max_packets; ++index)
-      if (packet_attributes->ingoing_connectable_link->traveling_packets[index] == self) {
-        d_delete(packet_attributes->ingoing_connectable_link->traveling_packets[index]);
+      if ((current_packet = packet_attributes->ingoing_connectable_link->traveling_packets[index]) == self) {
         packet_attributes->ingoing_connectable_link->traveling_packets[index] = NULL;
+        d_delete(current_packet);
       }
   if (packet_attributes->outgoing_connectable_link)
     for (size_t index = 0; index < d_connectable_max_packets; ++index)
-      if (packet_attributes->outgoing_connectable_link->traveling_packets[index] == self) {
-        d_delete(packet_attributes->outgoing_connectable_link->traveling_packets[index]);
+      if ((current_packet = packet_attributes->outgoing_connectable_link->traveling_packets[index]) == self) {
         packet_attributes->outgoing_connectable_link->traveling_packets[index] = NULL;
+        d_delete(current_packet);
       }
   packet_attributes->ingoing_connectable_link = ingoing_connectable_link;
   packet_attributes->outgoing_connectable_link = outgoing_connectable_link;
@@ -87,20 +88,21 @@ d_define_method(packet, set_traveling_next_hop)(struct s_object *self, struct s_
     struct s_connectable_link *ingoing_connectable_link, struct s_connectable_link *outgoing_connectable_link) {
   d_using(packet);
   struct s_connector_attributes *connector_attributes = d_cast(connector_traveling, connector);
+  struct s_object *current_packet;
   if (packet_attributes->connector_traveling)
     d_delete(packet_attributes->connector_traveling);
   packet_attributes->connector_traveling = d_retain(connector_traveling);
   if (packet_attributes->ingoing_connectable_link)
     for (size_t index = 0; index < d_connectable_max_packets; ++index)
-      if (packet_attributes->ingoing_connectable_link->traveling_packets[index] == self) {
-        d_delete(packet_attributes->ingoing_connectable_link->traveling_packets[index]);
-        packet_attributes->ingoing_connectable_link->traveling_packets[index] = NULL;
+      if ((current_packet = packet_attributes->ingoing_connectable_link->traveling_packets[index]) == self) {
+        packet_attributes->outgoing_connectable_link->traveling_packets[index] = NULL;
+        d_delete(current_packet);
       }
   if (packet_attributes->outgoing_connectable_link)
     for (size_t index = 0; index < d_connectable_max_packets; ++index)
-      if (packet_attributes->outgoing_connectable_link->traveling_packets[index] == self) {
-        d_delete(packet_attributes->outgoing_connectable_link->traveling_packets[index]);
+      if ((current_packet = packet_attributes->outgoing_connectable_link->traveling_packets[index]) == self) {
         packet_attributes->outgoing_connectable_link->traveling_packets[index] = NULL;
+        d_delete(current_packet);
       }
   packet_attributes->ingoing_connectable_link = ingoing_connectable_link;
   packet_attributes->outgoing_connectable_link = outgoing_connectable_link;
@@ -197,35 +199,37 @@ d_define_method_override(packet, draw)(struct s_object *self, struct s_object *e
 }
 d_define_method(packet, destroy_links)(struct s_object *self) {
   d_using(packet);
+  struct s_object *current_packet;
   if (packet_attributes->ingoing_connectable_link)
     for (size_t index = 0; index < d_connectable_max_packets; ++index)
-      if (packet_attributes->ingoing_connectable_link->traveling_packets[index] == self) {
-        d_delete(packet_attributes->ingoing_connectable_link->traveling_packets[index]);
+      if ((current_packet = packet_attributes->ingoing_connectable_link->traveling_packets[index]) == self) {
         packet_attributes->ingoing_connectable_link->traveling_packets[index] = NULL;
+        d_delete(current_packet);
       }
   packet_attributes->ingoing_connectable_link = NULL;
   if (packet_attributes->outgoing_connectable_link)
     for (size_t index = 0; index < d_connectable_max_packets; ++index)
-      if (packet_attributes->outgoing_connectable_link->traveling_packets[index] == self) {
-        d_delete(packet_attributes->outgoing_connectable_link->traveling_packets[index]);
+      if ((current_packet = packet_attributes->outgoing_connectable_link->traveling_packets[index]) == self) {
         packet_attributes->outgoing_connectable_link->traveling_packets[index] = NULL;
+        d_delete(current_packet);
       }
   packet_attributes->outgoing_connectable_link = NULL;
   return self;
 }
 d_define_method(packet, delete)(struct s_object *self, struct s_packet_attributes *attributes) {
+  struct s_object *current_packet;
   if (attributes->ingoing_connectable_link)
     for (size_t index = 0; index < d_connectable_max_packets; ++index)
-      if (attributes->ingoing_connectable_link->traveling_packets[index] == self) {
-        d_delete(attributes->ingoing_connectable_link->traveling_packets[index]);
+      if ((current_packet = attributes->ingoing_connectable_link->traveling_packets[index]) == self) {
         attributes->ingoing_connectable_link->traveling_packets[index] = NULL;
+        d_delete(current_packet);
       }
   attributes->ingoing_connectable_link = NULL;
   if (attributes->outgoing_connectable_link)
     for (size_t index = 0; index < d_connectable_max_packets; ++index)
-      if (attributes->outgoing_connectable_link->traveling_packets[index] == self) {
-        d_delete(attributes->outgoing_connectable_link->traveling_packets[index]);
+      if ((current_packet = attributes->outgoing_connectable_link->traveling_packets[index]) == self) {
         attributes->outgoing_connectable_link->traveling_packets[index] = NULL;
+        d_delete(current_packet);
       }
   attributes->outgoing_connectable_link = NULL;
   attributes->outgoing_connectable_link = NULL;

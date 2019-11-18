@@ -29,6 +29,7 @@ typedef struct s_connectable_factory_template { d_list_node_head;
   char description[d_string_buffer_size], title[d_string_buffer_size];
   size_t connections;
   double offsets_x[d_connectable_factory_connections], offsets_y[d_connectable_factory_connections], position_x, position_y;
+  unsigned int price;
   t_boolean generate_traffic, filter_spam;
 } s_connectable_factory_template;
 d_declare_class(connectable_factory) {
@@ -43,12 +44,14 @@ d_declare_class(connectable_factory) {
   struct s_object *ui_factory;
   struct s_object *ui_sell_confirmation;
   t_boolean connector_selected, ui_sell_confirmation_visible;
+  unsigned int current_credit;
 } d_declare_class_tail(connectable_factory);
 struct s_connectable_factory_attributes *p_connectable_factory_alloc(struct s_object *self);
 extern struct s_object *f_connectable_factory_new(struct s_object *self, struct s_object *ui_factory, struct s_object *environment);
 d_declare_method(connectable_factory, add_connectable_template)(struct s_object *self, struct s_object *stream, const char *title, const char *description,
-  double *offsets_x, double *offsets_y, size_t connections, t_boolean generate_traffic, t_boolean filter_spam);
+  double *offsets_x, double *offsets_y, size_t connections, unsigned int price, t_boolean generate_traffic, t_boolean filter_spam);
 d_declare_method(connectable_factory, set_connector_selected)(struct s_object *self, t_boolean selected);
+d_declare_method(connectable_factory, set_credit)(struct s_object *self, unsigned int credit);
 d_declare_method(connectable_factory, get_selected_node)(struct s_object *self);
 d_declare_method(connectable_factory, is_traffic_generation_required)(struct s_object *self);
 d_declare_method(connectable_factory, click_received_create)(struct s_object *self, struct s_connectable_factory_template *template);

@@ -101,6 +101,11 @@ d_define_method(connectable, set_generate_traffic_speed)(struct s_object *self, 
   connectable_attributes->seconds_between_generation_maximum = maximum_seconds_between_traffic;
   return self;
 }
+d_define_method(connectable, set_price)(struct s_object *self, unsigned int price) {
+  d_using(connectable);
+  connectable_attributes->price = price;
+  return self;
+}
 d_define_method(connectable, add_connection_point)(struct s_object *self, double offset_x, double offset_y, const char *label) {
   d_using(connectable);
   struct s_connectable_link *connectable_link;
@@ -249,6 +254,7 @@ d_define_method(connectable, delete)(struct s_object *self, struct s_connectable
 }
 d_define_class(connectable) {d_hook_method(connectable, e_flag_public, set_generate_traffic),
   d_hook_method(connectable, e_flag_public, set_generate_traffic_speed),
+  d_hook_method(connectable, e_flag_public, set_price),
   d_hook_method(connectable, e_flag_public, add_connection_point),
   d_hook_method(connectable, e_flag_public, is_traffic_generation_required),
   d_hook_method(connectable, e_flag_public, get_selected_node),

@@ -21,7 +21,9 @@
 void p_connectable_factory_click_create(struct s_object *self, void **parameters, size_t entries) {
   struct s_object *connectable_factory = (struct s_object *)parameters[0];
   struct s_connectable_factory_template *current_template = (struct s_connectable_factory_template *)parameters[1];
+  struct s_object *ui_button = (struct s_object *)parameters[2];
   d_call(connectable_factory, m_connectable_factory_click_received_create, current_template);
+  d_call(ui_button, m_uiable_mode, e_uiable_mode_idle);
 }
 void p_connectable_factory_click_sell(struct s_object *self, void **parameters, size_t entries) {
   struct s_object *connectable_factory = (struct s_object *)parameters[0];
@@ -72,7 +74,7 @@ struct s_object *f_connectable_factory_new(struct s_object *self, struct s_objec
   return self;
 }
 d_define_method(connectable_factory, add_connectable_template)(struct s_object *self, struct s_object *stream, const char *title, const char *description,
-    double *offsets_x, double *offsets_y, size_t connections, t_boolean generate_traffic, t_boolean filter_spam) {
+    double *offsets_x, double *offsets_y, size_t connections, unsigned int price, t_boolean generate_traffic, t_boolean filter_spam) {
   d_using(connectable_factory);
   if (connections <= d_connectable_factory_connections) {
     struct s_connectable_factory_template *current_template;
@@ -82,6 +84,7 @@ d_define_method(connectable_factory, add_connectable_template)(struct s_object *
       strncpy(current_template->description, description, d_string_buffer_size);
       memcpy(current_template->offsets_x, offsets_x, (sizeof(double) * connections));
       memcpy(current_template->offsets_y, offsets_y, (sizeof(double) * connections));
+      current_template->price = price;
       current_template->generate_traffic = generate_traffic;
       current_template->filter_spam = filter_spam;
       current_template->connections = connections;
@@ -90,6 +93,7 @@ d_define_method(connectable_factory, add_connectable_template)(struct s_object *
               current_template->title))) {
         d_call(current_template->uiable_button, m_emitter_embed_parameter, "clicked_left", self);
         d_call(current_template->uiable_button, m_emitter_embed_parameter, "clicked_left", current_template);
+        d_call(current_template->uiable_button, m_emitter_embed_parameter, "clicked_left", current_template->uiable_button);
         d_call(current_template->uiable_button, m_emitter_embed_function, "clicked_left", p_connectable_factory_click_create);
         d_call(current_template->uiable_button, m_drawable_set_dimension, d_connectable_factory_button_width, d_connectable_factory_button_height);
         if ((current_template->drawable_icon = f_bitmap_new(d_new(bitmap), current_template->stream, connectable_factory_attributes->environment))) {
@@ -106,6 +110,11 @@ d_define_method(connectable_factory, add_connectable_template)(struct s_object *
 d_define_method(connectable_factory, set_connector_selected)(struct s_object *self, t_boolean selected) {
   d_using(connectable_factory);
   connectable_factory_attributes->connector_selected = selected;
+  return self;
+}
+d_define_method(connectable_factory, set_credit)(struct s_object *self, unsigned int credit) {
+  d_using(connectable_factory);
+  connectable_factory_attributes->current_credit = credit;
   return self;
 }
 d_define_method(connectable_factory, get_selected_node)(struct s_object *self) {
@@ -129,7 +138,10 @@ d_define_method(connectable_factory, is_traffic_generation_required)(struct s_ob
 d_define_method(connectable_factory, click_received_create)(struct s_object *self, struct s_connectable_factory_template *template) {
   d_using(connectable_factory);
   if (!connectable_factory_attributes->active_template)
-    connectable_factory_attributes->active_template = template;
+    if (template->price <= connectable_factory_attributes->current_credit) {
+      connectable_factory_attributes->current_credit -= template->price;
+      connectable_factory_attributes->active_template = template;
+    }
   return self;
 }
 d_define_method(connectable_factory, click_received_sell)(struct s_object *self) {
@@ -156,6 +168,8 @@ d_define_method(connectable_factory, click_received_sell)(struct s_object *self)
             current_link->connector = NULL;
           }
         }
+        /* we give back to our bank account half of the price of the tool */
+        connectable_factory_attributes->current_credit += (connectable_attributes->price / 2.0);
         d_call(connectable_factory_attributes->array_connectable_instances, m_array_remove, index);
         d_call(connectable_factory_attributes->array_connectable_instances, m_array_shrink, NULL);
         break;
@@ -216,6 +230,7 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
       d_call(connectable, m_connectable_set_generate_traffic, connectable_factory_attributes->active_template->generate_traffic);
       d_call(connectable, m_drawable_set_position, connectable_factory_attributes->active_template->position_x,
           connectable_factory_attributes->active_template->position_y);
+      d_call(connectable, m_connectable_set_price, connectable_factory_attributes->active_template->price);
       for (size_t index_offset = 0; index_offset < connectable_factory_attributes->active_template->connections; ++index_offset) {
         snprintf(buffer, d_string_buffer_size, "%c", (char)(((char)'A') + index_offset));
         d_call(connectable, m_connectable_add_connection_point, connectable_factory_attributes->active_template->offsets_x[index_offset],
@@ -358,6 +373,7 @@ d_define_method(connectable_factory, delete)(struct s_object *self, struct s_con
 }
 d_define_class(connectable_factory) {d_hook_method(connectable_factory, e_flag_public, add_connectable_template),
   d_hook_method(connectable_factory, e_flag_public, set_connector_selected),
+  d_hook_method(connectable_factory, e_flag_public, set_credit),
   d_hook_method(connectable_factory, e_flag_public, get_selected_node),
   d_hook_method(connectable_factory, e_flag_public, is_traffic_generation_required),
   d_hook_method(connectable_factory, e_flag_public, click_received_create),
