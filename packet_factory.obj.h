@@ -24,6 +24,7 @@
 #define d_packet_factory_statistics_maximum_index 30
 #define d_packet_factory_steps 0.01
 #define d_packet_factory_spam_percentage 25
+#define d_packet_factory_acceleration_factor 1.0
 typedef struct s_packet_factory_statistics { d_list_node_head;
   struct s_object *connectable;
   double probability_target[d_packet_factory_statistics_maximum_targets]; /* the sum of these values has to be 1 */

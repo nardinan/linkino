@@ -78,6 +78,8 @@ d_define_method(packet_factory, forward_packet)(struct s_object *self, struct s_
         (packet_attributes->outgoing_connectable_link->connectable) &&
         (packet_attributes->outgoing_connectable_link->connector)) {
       struct s_connectable_attributes *connectable_attributes = d_cast(packet_attributes->outgoing_connectable_link->connectable, connectable);
+      if (connectable_attributes->accelerate_traffic)
+        packet_attributes->traveling_speed += d_packet_factory_acceleration_factor;
       if (((packet_attributes->flags & d_packet_spam) == d_packet_spam) && (connectable_attributes->block_spam)) {
         /* we need to block the packet: it has been blocked by the node */
         packet_attributes->ingoing_connectable_link = NULL;

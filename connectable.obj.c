@@ -73,7 +73,7 @@ struct s_connectable_attributes *p_connectable_alloc(struct s_object *self, stru
   return result;
 }
 extern struct s_object *f_connectable_new(struct s_object *self, struct s_object *stream, struct s_object *environment, struct s_object *ui_factory, 
-    t_boolean use_human_name, t_boolean block_spam, t_boolean shape_traffic) {
+    t_boolean use_human_name, t_boolean block_spam, t_boolean shape_traffic, t_boolean accelerate_traffic) {
   struct s_connectable_attributes *connectable_attributes = p_connectable_alloc(self, stream, environment);
   memset(&(connectable_attributes->list_connection_nodes), 0, sizeof(struct s_list));
   if (use_human_name) {
@@ -88,6 +88,7 @@ extern struct s_object *f_connectable_new(struct s_object *self, struct s_object
   connectable_attributes->seconds_between_generation_maximum = d_connectable_max_seconds_between_generation;
   connectable_attributes->block_spam = block_spam;
   connectable_attributes->shape_traffic = shape_traffic;
+  connectable_attributes->accelerate_traffic = accelerate_traffic;
   return self;
 }
 d_define_method(connectable, set_generate_traffic)(struct s_object *self, t_boolean generate_traffic) {
@@ -244,11 +245,13 @@ d_define_method(connectable, delete)(struct s_object *self, struct s_connectable
   struct s_connectable_link *current_element;
   while ((current_element = (struct s_connectable_link *)attributes->list_connection_nodes.head)) {
     f_list_delete(&(attributes->list_connection_nodes), (struct s_list_node *)current_element);
-    for (unsigned int index = 0; index < d_connectable_max_packets; ++index)
-      if (current_element->traveling_packets[index]) {
-        d_delete(current_element->traveling_packets[index]);
+    for (unsigned int index = 0; index < d_connectable_max_packets; ++index) {
+      struct s_object *current_packet;
+      if ((current_packet = current_element->traveling_packets[index])) {
         current_element->traveling_packets[index] = NULL;
+        d_delete(current_packet);
       }
+    }
     d_free(current_element);
   }
   return NULL;

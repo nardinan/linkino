@@ -30,7 +30,7 @@ typedef struct s_connectable_factory_template { d_list_node_head;
   char description[d_string_buffer_size], title[d_string_buffer_size];
   size_t connections;
   double offsets_x[d_connectable_factory_connections], offsets_y[d_connectable_factory_connections], position_x, position_y, price;
-  t_boolean generate_traffic, filter_spam, shape_traffic;
+  t_boolean generate_traffic, filter_spam, shape_traffic, accelerate_traffic;
 } s_connectable_factory_template;
 d_declare_class(connectable_factory) {
   struct s_attributes head;
@@ -51,7 +51,8 @@ d_declare_class(connectable_factory) {
 struct s_connectable_factory_attributes *p_connectable_factory_alloc(struct s_object *self);
 extern struct s_object *f_connectable_factory_new(struct s_object *self, struct s_object *ui_factory, struct s_object *environment);
 d_declare_method(connectable_factory, add_connectable_template)(struct s_object *self, struct s_object *stream, const char *title, const char *description,
-  double *offsets_x, double *offsets_y, size_t connections, double price, t_boolean generate_traffic, t_boolean filter_spam, t_boolean shape_traffic);
+  double *offsets_x, double *offsets_y, size_t connections, double price, t_boolean generate_traffic, t_boolean filter_spam, t_boolean shape_traffic,
+  t_boolean accelerate_traffic);
 d_declare_method(connectable_factory, set_connector_selected)(struct s_object *self, t_boolean selected);
 d_declare_method(connectable_factory, set_credit)(struct s_object *self, double credit);
 d_declare_method(connectable_factory, get_selected_node)(struct s_object *self);

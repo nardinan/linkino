@@ -222,14 +222,14 @@ d_define_method(packet, delete)(struct s_object *self, struct s_packet_attribute
     for (size_t index = 0; index < d_connectable_max_packets; ++index)
       if ((current_packet = attributes->ingoing_connectable_link->traveling_packets[index]) == self) {
         attributes->ingoing_connectable_link->traveling_packets[index] = NULL;
-        d_delete(current_packet);
+        /* is impossible we're going to delete the packet! We're doing it right now! */
       }
   attributes->ingoing_connectable_link = NULL;
   if (attributes->outgoing_connectable_link)
     for (size_t index = 0; index < d_connectable_max_packets; ++index)
       if ((current_packet = attributes->outgoing_connectable_link->traveling_packets[index]) == self) {
         attributes->outgoing_connectable_link->traveling_packets[index] = NULL;
-        d_delete(current_packet);
+        /* is impossible we're going to delete the packet! We're doing it right now! */
       }
   attributes->outgoing_connectable_link = NULL;
   attributes->outgoing_connectable_link = NULL;

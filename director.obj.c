@@ -61,13 +61,14 @@ extern struct s_object *f_director_new(struct s_object *self, struct s_object *e
   return self;
 }
 d_define_method(director, add_node)(struct s_object *self, const char *stream_icon_label, const char *title, const char *description, double *offsets_x,
-    double *offsets_y, size_t connections, double price, t_boolean generate_traffic, t_boolean filter_spam, t_boolean shape_traffic) {
+    double *offsets_y, size_t connections, double price, t_boolean generate_traffic, t_boolean filter_spam, t_boolean shape_traffic, 
+    t_boolean accelerate_traffic) {
   d_using(director);
   struct s_object *stream;
   struct s_media_factory_attributes *media_factory_attributes = d_cast(director_attributes->media_factory, media_factory);
   if ((stream = d_call(media_factory_attributes->resources_png, m_resources_get_stream_strict, stream_icon_label, e_resources_type_common))) {
     d_call(director_attributes->connectable_factory, m_connectable_factory_add_connectable_template, stream, title, description, offsets_x, offsets_y,
-        connections, price, generate_traffic, filter_spam, shape_traffic);
+        connections, price, generate_traffic, filter_spam, shape_traffic, accelerate_traffic);
   }
   return self;
 }

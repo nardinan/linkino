@@ -46,7 +46,8 @@ d_declare_class(director) {
 struct s_director_attributes *p_director_alloc(struct s_object *self);
 extern struct s_object *f_director_new(struct s_object *self, struct s_object *environment, struct s_object *ui_factory, struct s_object *media_factory);
 d_declare_method(director, add_node)(struct s_object *self, const char *stream_icon_label, const char *title, const char *description, double *offsets_x,
-  double *offsets_y, size_t connections, double price, t_boolean generate_traffic, t_boolean filter_spam, t_boolean shape_traffic);
+  double *offsets_y, size_t connections, double price, t_boolean generate_traffic, t_boolean filter_spam, t_boolean shape_traffic, 
+  t_boolean accelerate_traffic);
 d_declare_method(director, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event);
 d_declare_method(director, draw)(struct s_object *self, struct s_object *environment);
 d_declare_method(director, delete)(struct s_object *self, struct s_director_attributes *attributes);
