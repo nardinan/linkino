@@ -84,7 +84,7 @@ struct s_object *f_connectable_factory_new(struct s_object *self, struct s_objec
   return self;
 }
 d_define_method(connectable_factory, add_connectable_template)(struct s_object *self, struct s_object *stream, const char *title, const char *description,
-    double *offsets_x, double *offsets_y, size_t connections, double price, t_boolean generate_traffic, t_boolean filter_spam) {
+    double *offsets_x, double *offsets_y, size_t connections, double price, t_boolean generate_traffic, t_boolean filter_spam, t_boolean shape_traffic) {
   d_using(connectable_factory);
   if (connections <= d_connectable_factory_connections) {
     struct s_connectable_factory_template *current_template;
@@ -97,6 +97,7 @@ d_define_method(connectable_factory, add_connectable_template)(struct s_object *
       current_template->price = price;
       current_template->generate_traffic = generate_traffic;
       current_template->filter_spam = filter_spam;
+      current_template->shape_traffic = shape_traffic;
       current_template->connections = connections;
       if ((current_template->uiable_button =
             d_call(connectable_factory_attributes->ui_factory, m_ui_factory_new_button, d_ui_factory_default_font_id, d_ui_factory_default_font_style,
@@ -243,7 +244,8 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
         f_connectable_new(d_new(connectable), connectable_factory_attributes->active_template->stream, 
             connectable_factory_attributes->environment, connectable_factory_attributes->ui_factory, 
             ((connectable_factory_attributes->active_template->generate_traffic)?d_true:d_false), 
-            connectable_factory_attributes->active_template->filter_spam);
+            connectable_factory_attributes->active_template->filter_spam,
+            connectable_factory_attributes->active_template->shape_traffic);
       d_call(connectable, m_connectable_set_generate_traffic, connectable_factory_attributes->active_template->generate_traffic);
       d_call(connectable, m_drawable_set_position, connectable_factory_attributes->active_template->position_x,
           connectable_factory_attributes->active_template->position_y);

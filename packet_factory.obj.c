@@ -83,21 +83,36 @@ d_define_method(packet_factory, forward_packet)(struct s_object *self, struct s_
         packet_attributes->ingoing_connectable_link = NULL;
         packet_attributes->outgoing_connectable_link = NULL;
       } else if ((f_string_strcmp(packet_attributes->unique_final_destination, packet_attributes->outgoing_connectable_link->unique_code) != 0)) {
-        struct s_connectable_attributes *connectable_attributes = d_cast(packet_attributes->outgoing_connectable_link->connectable, connectable);
         struct s_connectable_link *current_connectable_link, *next_connectable_link, *selected_ingoing_connectable_link = NULL,
                                   *selected_outgoing_connectable_link = NULL;
-        unsigned int current_hops, selected_hops;
+        unsigned int current_hops, selected_hops, current_traveling_packets, selected_traveling_packets;
         d_foreach(&(connectable_attributes->list_connection_nodes), current_connectable_link, struct s_connectable_link)
           if ((next_connectable_link = (struct s_connectable_link *)d_call(packet_factory_attributes->connector_factory,
                   m_connector_factory_get_connector_for, current_connectable_link, packet_attributes->ingoing_connectable_link, 
-                  packet_attributes->unique_final_destination, &current_hops)))
-            if ((!selected_ingoing_connectable_link) || (!selected_outgoing_connectable_link) || (current_hops < selected_hops)) {
+                  packet_attributes->unique_final_destination, &current_hops))) {
+            t_boolean best_choice = d_false;
+            current_traveling_packets = 0;
+            for (size_t index = 0; index < d_connectable_max_packets; ++index)
+              if (current_connectable_link->traveling_packets[index])
+                ++current_traveling_packets;
+            if ((!selected_ingoing_connectable_link) || (!selected_outgoing_connectable_link))          // criteria if is the only way
+              best_choice = d_true;
+            else if (connectable_attributes->shape_traffic) {                                           // criteria for the bandwidth shaper
+              if (current_traveling_packets < selected_traveling_packets)
+                best_choice = d_true;
+            } else {                                                                                    // criteria used by the router
+              if (current_hops < selected_hops)
+                best_choice = d_true;
+            }
+            if (best_choice) {
               struct s_connector_attributes *connector_attributes = d_cast(next_connectable_link->connector, connector);
               selected_outgoing_connectable_link = next_connectable_link;
               selected_ingoing_connectable_link = ((connector_attributes->source_link == selected_outgoing_connectable_link)?
                   connector_attributes->destination_link:connector_attributes->source_link);
               selected_hops = current_hops;
+              selected_traveling_packets = current_traveling_packets;
             }
+          }
         if ((selected_ingoing_connectable_link) && (selected_outgoing_connectable_link) && 
             (selected_ingoing_connectable_link->connector == selected_outgoing_connectable_link->connector))
           d_call(packet, m_packet_set_traveling_next_hop, selected_ingoing_connectable_link->connector, selected_ingoing_connectable_link, 

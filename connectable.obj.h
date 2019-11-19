@@ -44,14 +44,14 @@ d_declare_class(connectable) {
   struct s_connectable_link *active_node;
   struct s_object *ui_label;
   int rectangle_x[d_connectable_rectangle_elements], rectangle_y[d_connectable_rectangle_elements];
-  t_boolean draw_rectangle, normalized, generate_traffic, block_spam;
+  t_boolean draw_rectangle, normalized, generate_traffic, block_spam, shape_traffic;
   time_t next_token_generation, seconds_between_generation_minimum, seconds_between_generation_maximum;
   char unique_code[d_connectable_code_size];
   double price;
 } d_declare_class_tail(connectable);
 struct s_connectable_attributes *p_connectable_alloc(struct s_object *self, struct s_object *stream, struct s_object *environment);
 extern struct s_object *f_connectable_new(struct s_object *self, struct s_object *stream, struct s_object *environment, struct s_object *ui_factory,
-    t_boolean use_human_name, t_boolean block_spam);
+    t_boolean use_human_name, t_boolean block_spam, t_boolean shape_traffic);
 d_declare_method(connectable, set_generate_traffic)(struct s_object *self, t_boolean generate_traffic);
 d_declare_method(connectable, set_generate_traffic_speed)(struct s_object *self, time_t minimum_seconds_between_traffic,
     time_t maximum_seconds_between_traffic);

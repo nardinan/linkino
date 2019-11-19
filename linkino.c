@@ -34,34 +34,42 @@ int linkino_loop_call(struct s_object *environment) {
       struct s_media_factory_attributes *media_factory_attributes = d_cast(loader_attributes->media_factory, media_factory);
       struct s_object *director = f_director_new(d_new(director), environment, loader_attributes->ui_factory, loader_attributes->media_factory);
       double offsets_x_router[] = {
-        0.0,
-        0.0,
-        0.0,
-        40.0,
-        40.0
+        30.0,
+        1.0,
+        30.0,
+        59.0
       }, offsets_y_router[] = {
-        5.0,
-        20.0,
-        33.0,
-        20.0,
-        33.0
+        1.0,
+        21.0,
+        42.0,
+        20.0
       }, offsets_x_firewall[] = {
-        0.0,
+        1.0,
         42.0
       }, offsets_y_firewall[] = {
-        22.0,
-        22.0
+        23.0,
+        23.0
       }, offsets_x_computer[] = {
-        84.0
+        87.0
       }, offsets_y_computer[] = {
-        59.0
+        61.0
+      }, offsets_x_shaper[] = {
+        1.0,
+        29.0,
+        29.0
+      }, offsets_y_shaper[] = {
+        13.0,
+        5.0,
+        19.0
       };
-      d_call(director, m_director_add_node, "router", "ROUTER", "A router that provides the basic infrastructure between nodes", offsets_x_router,
-        offsets_y_router, (size_t)5, 150.0, d_false, d_false);
-      d_call(director, m_director_add_node, "firewall", "FIREWALL", "A firewall that protect the peer 2 peer communication channels", offsets_x_firewall,
-        offsets_y_firewall, (size_t)2, 200.0, d_false, d_true);
-      d_call(director, m_director_add_node, "computer", "PC STATION", "A basic PC required by every employee in the company", offsets_x_computer,
-        offsets_y_computer, (size_t)1, 0.0, d_true, d_false);
+      d_call(director, m_director_add_node, "router", "ROUTER", "It routes the packet to destination", offsets_x_router, offsets_y_router, 
+          (size_t)4, 150.0, d_false, d_false);
+      d_call(director, m_director_add_node, "firewall", "FIREWALL", "It removes the spam", offsets_x_firewall, offsets_y_firewall, 
+          (size_t)2, 200.0, d_false, d_true);
+      d_call(director, m_director_add_node, "shaper", "SHAPER", "It shapes the traffic", offsets_x_shaper, offsets_y_shaper, 
+          (size_t)3, 200.0, d_false, d_false);
+      d_call(director, m_director_add_node, "computer", "PC STATION", "A basic PC", offsets_x_computer, offsets_y_computer, 
+          (size_t)1, 400.0, d_true, d_false);
       d_call(environment, m_environment_add_drawable, director, (d_ui_factory_default_level), e_environment_surface_primary);
       v_initialized = d_true;
     }

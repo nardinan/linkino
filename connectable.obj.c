@@ -73,7 +73,7 @@ struct s_connectable_attributes *p_connectable_alloc(struct s_object *self, stru
   return result;
 }
 extern struct s_object *f_connectable_new(struct s_object *self, struct s_object *stream, struct s_object *environment, struct s_object *ui_factory, 
-    t_boolean use_human_name, t_boolean block_spam) {
+    t_boolean use_human_name, t_boolean block_spam, t_boolean shape_traffic) {
   struct s_connectable_attributes *connectable_attributes = p_connectable_alloc(self, stream, environment);
   memset(&(connectable_attributes->list_connection_nodes), 0, sizeof(struct s_list));
   if (use_human_name) {
@@ -87,6 +87,7 @@ extern struct s_object *f_connectable_new(struct s_object *self, struct s_object
   connectable_attributes->seconds_between_generation_minimum = d_connectable_min_seconds_between_generation;
   connectable_attributes->seconds_between_generation_maximum = d_connectable_max_seconds_between_generation;
   connectable_attributes->block_spam = block_spam;
+  connectable_attributes->shape_traffic = shape_traffic;
   return self;
 }
 d_define_method(connectable, set_generate_traffic)(struct s_object *self, t_boolean generate_traffic) {
