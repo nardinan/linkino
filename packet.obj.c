@@ -95,7 +95,7 @@ d_define_method(packet, set_traveling_next_hop)(struct s_object *self, struct s_
   if (packet_attributes->ingoing_connectable_link)
     for (size_t index = 0; index < d_connectable_max_packets; ++index)
       if ((current_packet = packet_attributes->ingoing_connectable_link->traveling_packets[index]) == self) {
-        packet_attributes->outgoing_connectable_link->traveling_packets[index] = NULL;
+        packet_attributes->ingoing_connectable_link->traveling_packets[index] = NULL;
         d_delete(current_packet);
       }
   if (packet_attributes->outgoing_connectable_link)

@@ -69,15 +69,15 @@ int linkino_loop_call(struct s_object *environment) {
         1.0
       };
       d_call(director, m_director_add_node, "router", "ROUTER", "It routes the packet to destination", offsets_x_router, offsets_y_router, 
-          (size_t)4, 150.0, d_false, d_false, d_false);
+          (size_t)4, 150.0, d_false, d_false, d_false, d_false);
       d_call(director, m_director_add_node, "firewall", "FIREWALL", "It removes the spam", offsets_x_firewall, offsets_y_firewall, 
-          (size_t)2, 200.0, d_false, d_true, d_false);
+          (size_t)2, 200.0, d_false, d_true, d_false, d_false);
       d_call(director, m_director_add_node, "shaper", "SHAPER", "It shapes the traffic", offsets_x_shaper, offsets_y_shaper, 
-          (size_t)3, 200.0, d_false, d_false, d_false);
+          (size_t)3, 200.0, d_false, d_false, d_true, d_false);
       d_call(director, m_director_add_node, "computer", "PC STATION", "A basic PC", offsets_x_computer, offsets_y_computer, 
-          (size_t)1, 400.0, d_true, d_false, d_false);
+          (size_t)1, 400.0, d_true, d_false, d_false, d_false);
       d_call(director, m_director_add_node, "booster", "BOOSTER", "It accelerates the speed of a traveling packet", offsets_x_booster, offsets_y_booster, 
-          (size_t)2, 100.0, d_false, d_false, d_true);
+          (size_t)2, 100.0, d_false, d_false, d_true, d_true);
       d_call(environment, m_environment_add_drawable, director, (d_ui_factory_default_level), e_environment_surface_primary);
       v_initialized = d_true;
     }
