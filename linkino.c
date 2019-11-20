@@ -63,10 +63,10 @@ int linkino_loop_call(struct s_object *environment) {
         19.0
       }, offsets_x_booster[] = {
         1.0,
-        39.0
+        40.0
       }, offsets_y_booster[] = {
-        1.0,
-        1.0
+        3.0,
+        3.0
       };
       d_call(director, m_director_add_node, "router", "ROUTER", "It routes the packet to destination", offsets_x_router, offsets_y_router, 
           (size_t)4, 150.0, d_false, d_false, d_false, d_false);
