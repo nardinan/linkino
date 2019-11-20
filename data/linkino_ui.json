@@ -4,6 +4,7 @@
       "label": "confirmation_sell",
       "position_x": 200,
       "position_y": 100,
+      "floatable": false,
       "components": [
         {
           "label": "title",
@@ -70,6 +71,7 @@
       "label": "balance",
       "position_x": 600,
       "position_y": 450,
+      "floatable": false,
       "components": [
         { "label": "balance_label",
           "kind": "label",
@@ -86,9 +88,24 @@
         }
       ]
     },{
+      "label": "clock",
+      "position_x": 300,
+      "position_y": 10,
+      "floatable": false,
+      "components": [
+        { "label": "clock_label",
+          "kind": "label",
+          "font_id": 4,
+          "content": "07:00",
+	  "width": 90,
+	  "alignment_x": 2
+        }
+      ]
+    },{
       "label": "statistics",
       "position_x": 10,
       "position_y": 10,
+      "floatable": false,
       "components": [
         {
           "label": "score_label",

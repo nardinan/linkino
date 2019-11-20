@@ -78,9 +78,12 @@ d_define_method(packet_factory, forward_packet)(struct s_object *self, struct s_
         (packet_attributes->outgoing_connectable_link->connectable) &&
         (packet_attributes->outgoing_connectable_link->connector)) {
       struct s_connectable_attributes *connectable_attributes = d_cast(packet_attributes->outgoing_connectable_link->connectable, connectable);
-      if (connectable_attributes->accelerate_traffic)
+      if ((connectable_attributes->flags & d_connectable_accelerate_medium) == d_connectable_accelerate_medium)
         packet_attributes->traveling_speed += d_packet_factory_acceleration_factor;
-      if (((packet_attributes->flags & d_packet_spam) == d_packet_spam) && (connectable_attributes->block_spam)) {
+      if ((connectable_attributes->flags & d_connectable_accelerate_alot) == d_connectable_accelerate_alot)
+        packet_attributes->traveling_speed += (d_packet_factory_acceleration_factor * 2.0);
+      if (((packet_attributes->flags & d_packet_spam) == d_packet_spam) && 
+          ((connectable_attributes->flags & d_connectable_block_spam) == d_connectable_block_spam)) {
         /* we need to block the packet: it has been blocked by the node */
         packet_attributes->ingoing_connectable_link = NULL;
         packet_attributes->outgoing_connectable_link = NULL;
@@ -97,12 +100,12 @@ d_define_method(packet_factory, forward_packet)(struct s_object *self, struct s_
             for (size_t index = 0; index < d_connectable_max_packets; ++index)
               if (current_connectable_link->traveling_packets[index])
                 ++current_traveling_packets;
-            if ((!selected_ingoing_connectable_link) || (!selected_outgoing_connectable_link))          // criteria if is the only way
+            if ((!selected_ingoing_connectable_link) || (!selected_outgoing_connectable_link))                        // criteria if is the only way
               best_choice = d_true;
-            else if (connectable_attributes->shape_traffic) {                                           // criteria for the bandwidth shaper
+            else if ((connectable_attributes->flags & d_connectable_shape_traffic) == d_connectable_shape_traffic) {  // criteria for the bandwidth shaper
               if (current_traveling_packets < selected_traveling_packets)
                 best_choice = d_true;
-            } else {                                                                                    // criteria used by the router
+            } else {                                                                                                  // criteria used by the router
               if (current_hops < selected_hops)
                 best_choice = d_true;
             }
@@ -186,7 +189,7 @@ d_define_method(packet_factory, update_connector_weights)(struct s_object *self)
   size_t traffic_generators = 0;
   d_array_foreach(connectable_factory_attributes->array_connectable_instances, current_connectable) {
     struct s_connectable_attributes *connectable_attributes = d_cast(current_connectable, connectable);
-    if (connectable_attributes->generate_traffic)
+    if ((connectable_attributes->flags & d_connectable_generate_traffic) == d_connectable_generate_traffic)
       ++traffic_generators;
   }
   if (traffic_generators > 0) {
@@ -245,7 +248,8 @@ d_define_method_override(packet_factory, draw)(struct s_object *self, struct s_o
       int initial_iterations = iterations; /* we keep track of the iterations */
       d_array_foreach(connectable_factory_attributes->array_connectable_instances, current_connectable) {
         struct s_connectable_attributes *connectable_attributes = d_cast(current_connectable, connectable);
-        if ((connectable_attributes->generate_traffic) && (f_string_strcmp(connectable_attributes->unique_code, source_connectable_link->unique_code) != 0))
+        if (((connectable_attributes->flags & d_connectable_generate_traffic) == d_connectable_generate_traffic) && 
+            (f_string_strcmp(connectable_attributes->unique_code, source_connectable_link->unique_code) != 0))
           if ((--iterations) == 0) {
             destination_connectable = current_connectable;
             break;

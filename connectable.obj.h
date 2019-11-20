@@ -29,6 +29,15 @@
 #define d_connectable_min_seconds_between_generation 1
 #define d_connectable_max_seconds_between_generation 10
 #define d_connectable_max_packets 64
+/* set of flags that defines the behavior of the device */
+#define d_connectable_shape_traffic     0x0001
+#define d_connectable_block_spam        0x0002
+#define d_connectable_accelerate_medium 0x0004
+#define d_connectable_accelerate_alot   0x0008
+#define d_connectable_generate_traffic  0x0010
+#define d_connectable_can_be_acquired   0x0020
+#define d_connectable_cannot_be_moved   0x0040
+/* end of flags */
 extern unsigned int index_human_name;
 extern const char *list_human_names[];
 struct s_connectable_link { d_list_node_head;
@@ -43,18 +52,18 @@ d_declare_class(connectable) {
   struct s_list list_connection_nodes;
   struct s_connectable_link *active_node;
   struct s_object *ui_label;
-  int rectangle_x[d_connectable_rectangle_elements], rectangle_y[d_connectable_rectangle_elements];
-  t_boolean draw_rectangle, normalized, generate_traffic, block_spam, shape_traffic, accelerate_traffic;
+  int rectangle_x[d_connectable_rectangle_elements], rectangle_y[d_connectable_rectangle_elements], flags;
+  t_boolean draw_rectangle, normalized, silent;
   time_t next_token_generation, seconds_between_generation_minimum, seconds_between_generation_maximum;
   char unique_code[d_connectable_code_size];
   double price;
 } d_declare_class_tail(connectable);
 struct s_connectable_attributes *p_connectable_alloc(struct s_object *self, struct s_object *stream, struct s_object *environment);
 extern struct s_object *f_connectable_new(struct s_object *self, struct s_object *stream, struct s_object *environment, struct s_object *ui_factory,
-    t_boolean use_human_name, t_boolean block_spam, t_boolean shape_traffic, t_boolean accelerate_traffic);
-d_declare_method(connectable, set_generate_traffic)(struct s_object *self, t_boolean generate_traffic);
+    t_boolean use_human_name, int flags);
 d_declare_method(connectable, set_generate_traffic_speed)(struct s_object *self, time_t minimum_seconds_between_traffic,
     time_t maximum_seconds_between_traffic);
+d_declare_method(connectable, set_silent)(struct s_object *self, t_boolean silent);
 d_declare_method(connectable, set_price)(struct s_object *self, double price);
 d_declare_method(connectable, add_connection_point)(struct s_object *self, double offset_x, double offset_y, const char *label);
 d_declare_method(connectable, get_selected_node)(struct s_object *self);

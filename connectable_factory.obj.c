@@ -84,8 +84,7 @@ struct s_object *f_connectable_factory_new(struct s_object *self, struct s_objec
   return self;
 }
 d_define_method(connectable_factory, add_connectable_template)(struct s_object *self, struct s_object *stream, const char *title, const char *description,
-    double *offsets_x, double *offsets_y, size_t connections, double price, t_boolean generate_traffic, t_boolean filter_spam, t_boolean shape_traffic,
-    t_boolean accelerate_traffic) {
+    double *offsets_x, double *offsets_y, size_t connections, double price, int flags) {
   d_using(connectable_factory);
   if (connections <= d_connectable_factory_connections) {
     struct s_connectable_factory_template *current_template;
@@ -96,10 +95,7 @@ d_define_method(connectable_factory, add_connectable_template)(struct s_object *
       memcpy(current_template->offsets_x, offsets_x, (sizeof(double) * connections));
       memcpy(current_template->offsets_y, offsets_y, (sizeof(double) * connections));
       current_template->price = price;
-      current_template->generate_traffic = generate_traffic;
-      current_template->filter_spam = filter_spam;
-      current_template->shape_traffic = shape_traffic;
-      current_template->accelerate_traffic = accelerate_traffic;
+      current_template->flags = flags;
       current_template->connections = connections;
       if ((current_template->uiable_button =
             d_call(connectable_factory_attributes->ui_factory, m_ui_factory_new_button, d_ui_factory_default_font_id, d_ui_factory_default_font_style,
@@ -116,6 +112,48 @@ d_define_method(connectable_factory, add_connectable_template)(struct s_object *
         d_die(d_error_malloc);
     } else
       d_die(d_error_malloc);
+  }
+  return self;
+}
+d_define_method(connectable_factory, add_connectable_instance)(struct s_object *self, const char *title, double position_x, double position_y) {
+  d_using(connectable_factory);
+  struct s_connectable_factory_template *current_template = NULL;
+  d_foreach(&(connectable_factory_attributes->list_templates), current_template, struct s_connectable_factory_template)
+    if (f_string_strcmp(title, current_template->title) == 0)
+      break;
+  if (current_template) {
+    char buffer[d_string_buffer_size];
+    /* we generate a random string that will be used to identify univocally the instance */
+    /* we drop the active template and we create a new connectable that we push into the array */
+    struct s_object *connectable =
+      f_connectable_new(d_new(connectable), current_template->stream, connectable_factory_attributes->environment, connectable_factory_attributes->ui_factory,
+          (((current_template->flags & d_connectable_generate_traffic) == d_connectable_generate_traffic)?d_true:d_false), current_template->flags);
+    d_call(connectable, m_connectable_set_price, current_template->price);
+    d_call(connectable, m_drawable_set_position, position_x, position_y);
+    for (size_t index_offset = 0; index_offset < current_template->connections; ++index_offset) {
+      snprintf(buffer, d_string_buffer_size, "%c", (char)(((char)'A') + index_offset));
+      d_call(connectable, m_connectable_add_connection_point, current_template->offsets_x[index_offset],
+          current_template->offsets_y[index_offset], buffer);
+    }
+    d_call(connectable_factory_attributes->array_connectable_instances, m_array_push, connectable);
+    d_delete(connectable);
+  }
+  return self;
+}
+d_define_method(connectable_factory, set_generate_traffic_speed)(struct s_object *self, time_t minimum_seconds_between_traffic,
+    time_t maximum_seconds_between_traffic) {
+  d_using(connectable_factory);
+  struct s_object *current_connectable;
+  d_array_foreach(connectable_factory_attributes->array_connectable_instances, current_connectable) {
+    d_call(current_connectable, m_connectable_set_generate_traffic_speed, minimum_seconds_between_traffic, maximum_seconds_between_traffic);
+  }
+  return self;
+}
+d_define_method(connectable_factory, set_silent)(struct s_object *self, t_boolean silent) {
+  d_using(connectable_factory);
+  struct s_object *current_connectable;
+  d_array_foreach(connectable_factory_attributes->array_connectable_instances, current_connectable) {
+    d_call(current_connectable, m_connectable_set_silent, silent);
   }
   return self;
 }
@@ -239,28 +277,9 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
     changed = d_true;
   } else if (connectable_factory_attributes->active_template) {
     if ((current_event->type == SDL_MOUSEBUTTONDOWN) && (current_event->button.button == SDL_BUTTON_LEFT)) {
-      char buffer[d_string_buffer_size];
-      /* we generate a random string that will be used to identify univocally the instance */
-      /* we drop the active template and we create a new connectable that we push into the array */
-      struct s_object *connectable =
-        f_connectable_new(d_new(connectable), connectable_factory_attributes->active_template->stream, 
-            connectable_factory_attributes->environment, connectable_factory_attributes->ui_factory, 
-            ((connectable_factory_attributes->active_template->generate_traffic)?d_true:d_false), 
-            connectable_factory_attributes->active_template->filter_spam,
-            connectable_factory_attributes->active_template->shape_traffic,
-            connectable_factory_attributes->active_template->accelerate_traffic);
-      d_call(connectable, m_connectable_set_generate_traffic, connectable_factory_attributes->active_template->generate_traffic);
-      d_call(connectable, m_drawable_set_position, connectable_factory_attributes->active_template->position_x,
-          connectable_factory_attributes->active_template->position_y);
-      d_call(connectable, m_connectable_set_price, connectable_factory_attributes->active_template->price);
-      for (size_t index_offset = 0; index_offset < connectable_factory_attributes->active_template->connections; ++index_offset) {
-        snprintf(buffer, d_string_buffer_size, "%c", (char)(((char)'A') + index_offset));
-        d_call(connectable, m_connectable_add_connection_point, connectable_factory_attributes->active_template->offsets_x[index_offset],
-            connectable_factory_attributes->active_template->offsets_y[index_offset], buffer);
-      }
-      d_call(connectable_factory_attributes->array_connectable_instances, m_array_push, connectable);
+      d_call(self, m_connectable_factory_add_connectable_instance, connectable_factory_attributes->active_template->title, 
+          connectable_factory_attributes->active_template->position_x, connectable_factory_attributes->active_template->position_y);
       connectable_factory_attributes->active_template = NULL;
-      d_delete(connectable);
     }
     changed = d_true;
   } else {
@@ -279,7 +298,8 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
       if ((!connectable_factory_attributes->connector_selected) && (!changed)) {
         struct s_connectable_factory_template *current_template;
         d_foreach(&(connectable_factory_attributes->list_templates), current_template, struct s_connectable_factory_template)
-          d_call_owner(current_template->uiable_button, uiable, m_eventable_event, environment, current_event);
+          if ((current_template->flags & d_connectable_can_be_acquired) == d_connectable_can_be_acquired)
+            d_call_owner(current_template->uiable_button, uiable, m_eventable_event, environment, current_event);
         /* we need to consider what happens if the button is clicked (so we have an active template) */
         if (!connectable_factory_attributes->active_template) {
           if (current_event->type == SDL_MOUSEBUTTONDOWN) {
@@ -321,12 +341,14 @@ d_define_method_override(connectable_factory, draw)(struct s_object *self, struc
   }
   d_foreach(&(connectable_factory_attributes->list_templates), current_template, struct s_connectable_factory_template) {
     d_call(current_template->uiable_button, m_drawable_set_position, position_x, position_y);
-    if ((d_call(current_template->uiable_button, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
-            camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
-            camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
-      while (((intptr_t)d_call(current_template->uiable_button, m_drawable_draw, environment)) == d_drawable_return_continue);
-    d_call(current_template->uiable_button, m_uiable_mode, e_uiable_mode_idle);
-    position_y += (d_connectable_factory_button_height + 1);
+    if ((current_template->flags & d_connectable_can_be_acquired) == d_connectable_can_be_acquired) {
+      if ((d_call(current_template->uiable_button, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
+              camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
+              camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
+        while (((intptr_t)d_call(current_template->uiable_button, m_drawable_draw, environment)) == d_drawable_return_continue);
+      d_call(current_template->uiable_button, m_uiable_mode, e_uiable_mode_idle);
+      position_y += (d_connectable_factory_button_height + 1);
+    }
   }
   d_array_foreach(connectable_factory_attributes->array_connectable_instances, current_connectable) {
     if (connectable_factory_attributes->active_connectable == current_connectable)
@@ -407,6 +429,9 @@ d_define_method(connectable_factory, delete)(struct s_object *self, struct s_con
   return NULL;
 }
 d_define_class(connectable_factory) {d_hook_method(connectable_factory, e_flag_public, add_connectable_template),
+  d_hook_method(connectable_factory, e_flag_public, add_connectable_instance),
+  d_hook_method(connectable_factory, e_flag_public, set_generate_traffic_speed),
+  d_hook_method(connectable_factory, e_flag_public, set_silent),
   d_hook_method(connectable_factory, e_flag_public, set_connector_selected),
   d_hook_method(connectable_factory, e_flag_public, set_credit),
   d_hook_method(connectable_factory, e_flag_public, get_selected_node),

@@ -69,16 +69,49 @@ int linkino_loop_call(struct s_object *environment) {
         3.0
       };
       d_call(director, m_director_add_node, "router", "ROUTER", "It routes the packet to destination", offsets_x_router, offsets_y_router, 
-          (size_t)4, 150.0, d_false, d_false, d_false, d_false);
+          (size_t)4, 150.0, (d_connectable_can_be_acquired));
       d_call(director, m_director_add_node, "firewall", "FIREWALL", "It removes the spam", offsets_x_firewall, offsets_y_firewall, 
-          (size_t)2, 200.0, d_false, d_true, d_false, d_false);
+          (size_t)2, 200.0, (d_connectable_can_be_acquired | d_connectable_block_spam));
       d_call(director, m_director_add_node, "shaper", "SHAPER", "It shapes the traffic", offsets_x_shaper, offsets_y_shaper, 
-          (size_t)3, 200.0, d_false, d_false, d_true, d_false);
-      d_call(director, m_director_add_node, "computer", "PC STATION", "A basic PC", offsets_x_computer, offsets_y_computer, 
-          (size_t)1, 400.0, d_true, d_false, d_false, d_false);
+          (size_t)3, 200.0, (d_connectable_can_be_acquired | d_connectable_shape_traffic));
+      d_call(director, m_director_add_node, "computer", "STATION", "A basic PC", offsets_x_computer, offsets_y_computer, 
+          (size_t)1, 400.0, (d_connectable_generate_traffic | d_connectable_cannot_be_moved));
       d_call(director, m_director_add_node, "booster", "BOOSTER", "It accelerates the speed of a traveling packet", offsets_x_booster, offsets_y_booster, 
-          (size_t)2, 100.0, d_false, d_false, d_true, d_true);
+          (size_t)2, 100.0, (d_connectable_can_be_acquired | d_connectable_accelerate_medium));
       d_call(environment, m_environment_add_drawable, director, (d_ui_factory_default_level), e_environment_surface_primary);
+      /* we might want to create a level? */
+      struct s_level_description level = {
+        d_true,
+        'B',
+        {
+          {
+            d_true,
+            "STATION",
+            100.0,
+            200.0
+          },{
+            d_true,
+            "STATION",
+            200.0,
+            300.0
+          },{
+            d_false
+          }
+        },
+        {
+          {
+            d_true,
+            d_false,
+            d_false,
+            120,
+            5,
+            10
+          },{
+            d_false
+          }
+        }
+      };
+      d_call(director, m_director_set_level, level);
       v_initialized = d_true;
     }
   }

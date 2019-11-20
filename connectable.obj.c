@@ -73,7 +73,7 @@ struct s_connectable_attributes *p_connectable_alloc(struct s_object *self, stru
   return result;
 }
 extern struct s_object *f_connectable_new(struct s_object *self, struct s_object *stream, struct s_object *environment, struct s_object *ui_factory, 
-    t_boolean use_human_name, t_boolean block_spam, t_boolean shape_traffic, t_boolean accelerate_traffic) {
+    t_boolean use_human_name, int flags) {
   struct s_connectable_attributes *connectable_attributes = p_connectable_alloc(self, stream, environment);
   memset(&(connectable_attributes->list_connection_nodes), 0, sizeof(struct s_list));
   if (use_human_name) {
@@ -86,14 +86,7 @@ extern struct s_object *f_connectable_new(struct s_object *self, struct s_object
   }
   connectable_attributes->seconds_between_generation_minimum = d_connectable_min_seconds_between_generation;
   connectable_attributes->seconds_between_generation_maximum = d_connectable_max_seconds_between_generation;
-  connectable_attributes->block_spam = block_spam;
-  connectable_attributes->shape_traffic = shape_traffic;
-  connectable_attributes->accelerate_traffic = accelerate_traffic;
-  return self;
-}
-d_define_method(connectable, set_generate_traffic)(struct s_object *self, t_boolean generate_traffic) {
-  d_using(connectable);
-  connectable_attributes->generate_traffic = generate_traffic;
+  connectable_attributes->flags = flags;
   return self;
 }
 d_define_method(connectable, set_generate_traffic_speed)(struct s_object *self, time_t minimum_seconds_between_traffic,
@@ -101,6 +94,11 @@ d_define_method(connectable, set_generate_traffic_speed)(struct s_object *self, 
   d_using(connectable);
   connectable_attributes->seconds_between_generation_minimum = minimum_seconds_between_traffic;
   connectable_attributes->seconds_between_generation_maximum = maximum_seconds_between_traffic;
+  return self;
+}
+d_define_method(connectable, set_silent)(struct s_object *self, t_boolean silent) {
+  d_using(connectable);
+  connectable_attributes->silent = silent;
   return self;
 }
 d_define_method(connectable, set_price)(struct s_object *self, double price) {
@@ -135,7 +133,7 @@ d_define_method(connectable, get_selected_node)(struct s_object *self) {
 d_define_method(connectable, is_traffic_generation_required)(struct s_object *self) {
   d_using(connectable);
   struct s_connectable_link *result = NULL;
-  if (connectable_attributes->generate_traffic) {
+  if (((connectable_attributes->flags & d_connectable_generate_traffic) == d_connectable_generate_traffic) && (!connectable_attributes->silent)) {
     time_t current_timestamp = time(NULL);
     if (current_timestamp >= connectable_attributes->next_token_generation) {
       size_t final_link_steps = (rand() % (size_t)connectable_attributes->list_connection_nodes.fill);
@@ -157,11 +155,13 @@ d_define_method(connectable, is_over)(struct s_object *self, int mouse_x, int mo
   struct s_drawable_attributes *drawable_attributes = d_cast(self, drawable);
   double position_x, position_y, width, height;
   struct s_object *result = NULL;
-  d_call(self, m_drawable_get_position, &position_x, &position_y);
-  d_call(self, m_drawable_get_dimension, &width, &height);
-  if (((mouse_x > position_x) && (mouse_x < position_x + width)) && 
-      ((mouse_y > position_y) && (mouse_y < position_y + height)))
-    result = self;
+  if ((connectable_attributes->flags & d_connectable_cannot_be_moved) != d_connectable_cannot_be_moved) {
+    d_call(self, m_drawable_get_position, &position_x, &position_y);
+    d_call(self, m_drawable_get_dimension, &width, &height);
+    if (((mouse_x > position_x) && (mouse_x < position_x + width)) && 
+        ((mouse_y > position_y) && (mouse_y < position_y + height)))
+      result = self;
+  }
   return result;
 }
 d_define_method_override(connectable, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event) {
@@ -256,8 +256,8 @@ d_define_method(connectable, delete)(struct s_object *self, struct s_connectable
   }
   return NULL;
 }
-d_define_class(connectable) {d_hook_method(connectable, e_flag_public, set_generate_traffic),
-  d_hook_method(connectable, e_flag_public, set_generate_traffic_speed),
+d_define_class(connectable) {d_hook_method(connectable, e_flag_public, set_generate_traffic_speed),
+  d_hook_method(connectable, e_flag_public, set_silent),
   d_hook_method(connectable, e_flag_public, set_price),
   d_hook_method(connectable, e_flag_public, add_connection_point),
   d_hook_method(connectable, e_flag_public, is_traffic_generation_required),

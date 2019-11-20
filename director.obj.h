@@ -17,6 +17,8 @@
  */
 #ifndef linkino_director_h
 #define linkino_director_h
+#define d_director_events 24
+#define d_director_stations 15
 #include "connector_factory.obj.h"
 #include "connectable_factory.obj.h"
 #include "packet_factory.obj.h"
@@ -28,8 +30,24 @@ enum e_director_statistics_label {
   e_statistics_average_time,
   e_statistics_average_hops,
   e_statistics_score,
+  e_statistics_clock,
   e_statistics_NULL
 };
+typedef struct s_station_description {
+  t_boolean set;
+  char *title;
+  double position_x, position_y;
+} s_station_description;
+typedef struct s_events_description {
+  t_boolean set, triggered, silent_traffic_generators;
+  time_t trigger_time, minimum_seconds_between_traffic, maximum_seconds_between_traffic;
+} s_events_description;
+typedef struct s_level_description {
+  t_boolean set;
+  char minimum_class;
+  struct s_station_description stations[d_director_stations];
+  struct s_events_description events[d_director_events];
+} s_level_events;
 d_declare_class(director) {
   struct s_attributes head;
   struct s_object *environment;
@@ -40,14 +58,17 @@ d_declare_class(director) {
   struct s_object *packet_factory;
   struct s_object *statistics;
   struct s_object *ui_statistics;
+  struct s_object *ui_clock;
   struct s_uiable_container *ui_labels[e_statistics_NULL];
-  unsigned int current_credit;
+  time_t level_starting_time;
+  struct s_level_description current_level;
 } d_declare_class_tail(director);
 struct s_director_attributes *p_director_alloc(struct s_object *self);
 extern struct s_object *f_director_new(struct s_object *self, struct s_object *environment, struct s_object *ui_factory, struct s_object *media_factory);
 d_declare_method(director, add_node)(struct s_object *self, const char *stream_icon_label, const char *title, const char *description, double *offsets_x,
-  double *offsets_y, size_t connections, double price, t_boolean generate_traffic, t_boolean filter_spam, t_boolean shape_traffic, 
-  t_boolean accelerate_traffic);
+    double *offsets_y, size_t connections, double price, int flags);
+d_declare_method(director, set_level)(struct s_object *self, struct s_level_description level_description);
+d_declare_method(director, update_level)(struct s_object *self);
 d_declare_method(director, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event);
 d_declare_method(director, draw)(struct s_object *self, struct s_object *environment);
 d_declare_method(director, delete)(struct s_object *self, struct s_director_attributes *attributes);
