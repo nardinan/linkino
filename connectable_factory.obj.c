@@ -77,7 +77,7 @@ struct s_object *f_connectable_factory_new(struct s_object *self, struct s_objec
       connectable_factory_attributes->ui_container_bank_balance = container->uiable;
       connectable_factory_attributes->ui_label_bank_balance = label_bank->uiable;
       d_call(connectable_factory_attributes->environment, m_environment_add_drawable, connectable_factory_attributes->ui_container_bank_balance,
-          d_ui_factory_default_level, e_environment_surface_primary);
+          (d_ui_factory_default_level + 2), e_environment_surface_primary);
     }
   } else
     d_die(d_error_malloc);
@@ -286,7 +286,7 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
      */
     if (!connectable_factory_attributes->ui_container_sell_confirmation_visible) {
       d_call(connectable_factory_attributes->environment, m_environment_add_drawable, connectable_factory_attributes->ui_container_sell_confirmation,
-          (d_ui_factory_default_level + 1), e_environment_surface_primary);
+          (d_ui_factory_default_level + 3), e_environment_surface_primary);
       connectable_factory_attributes->ui_container_sell_confirmation_visible = d_true;
     }
     changed = d_true;

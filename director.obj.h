@@ -46,6 +46,7 @@ typedef struct s_events_description {
 typedef struct s_level_description {
   t_boolean set;
   char minimum_class;
+  char *background_drawable;
   struct s_station_description stations[d_director_stations];
   struct s_events_description events[d_director_events];
 } s_level_events;
@@ -61,6 +62,7 @@ d_declare_class(director) {
   struct s_object *ui_statistics;
   struct s_object *ui_clock;
   struct s_uiable_container *ui_labels[e_statistics_NULL];
+  struct s_object *drawable_background;
   time_t level_starting_time;
   struct s_level_description current_level;
 } d_declare_class_tail(director);

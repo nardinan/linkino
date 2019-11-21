@@ -53,13 +53,13 @@ extern struct s_object *f_director_new(struct s_object *self, struct s_object *e
             container, "result_label5")));
     d_assert((director_attributes->ui_labels[e_statistics_score] = d_call(director_attributes->ui_factory, m_ui_factory_get_component,
             container, "score_label")));
-    d_call(director_attributes->environment, m_environment_add_drawable, director_attributes->ui_statistics, (d_ui_factory_default_level + 1),
+    d_call(director_attributes->environment, m_environment_add_drawable, director_attributes->ui_statistics, (d_ui_factory_default_level + 2),
         e_environment_surface_primary);
     if ((container = d_call(director_attributes->ui_factory, m_ui_factory_get_component, NULL, "clock"))) {
       director_attributes->ui_clock = container->uiable;
       d_assert((director_attributes->ui_labels[e_statistics_clock] = d_call(director_attributes->ui_factory, m_ui_factory_get_component,
               container, "clock_label")));
-      d_call(director_attributes->environment, m_environment_add_drawable, director_attributes->ui_clock, (d_ui_factory_default_level + 1),
+      d_call(director_attributes->environment, m_environment_add_drawable, director_attributes->ui_clock, (d_ui_factory_default_level + 2),
           e_environment_surface_primary);
     }
   }
@@ -79,12 +79,22 @@ d_define_method(director, add_node)(struct s_object *self, const char *stream_ic
 }
 d_define_method(director, set_level)(struct s_object *self, struct s_level_description level_description) {
   d_using(director);
+  enum e_media_factory_media_types current_type;
   director_attributes->current_level = level_description;
   /* we might want to reset the environment, and to generate the stations */
   d_call(director_attributes->statistics, m_statistics_reset, NULL);
   d_call(director_attributes->packet_factory, m_packet_factory_reset, NULL);
   d_call(director_attributes->connector_factory, m_connector_factory_reset, NULL);
   d_call(director_attributes->connectable_factory, m_connectable_factory_reset, NULL);
+  if (director_attributes->drawable_background) {
+    d_call(director_attributes->environment, m_environment_del_drawable, director_attributes->drawable_background, 
+        d_ui_factory_default_level, e_environment_surface_primary);
+    d_delete(director_attributes->drawable_background);
+  }
+  if ((director_attributes->drawable_background = d_call(director_attributes->media_factory, m_media_factory_get_media, 
+          level_description.background_drawable, &current_type)))
+    d_call(director_attributes->environment, m_environment_add_drawable, director_attributes->drawable_background,
+        d_ui_factory_default_level, e_environment_surface_primary);
   for (size_t index = 0; index < d_director_stations; ++index)
     if (level_description.stations[index].set) {
       d_call(director_attributes->connectable_factory, m_connectable_factory_add_connectable_instance, 
