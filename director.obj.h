@@ -35,12 +35,13 @@ enum e_director_statistics_label {
 };
 typedef struct s_station_description {
   t_boolean set;
-  char *title;
+  char *title, *unique_code;
   double position_x, position_y;
 } s_station_description;
 typedef struct s_events_description {
   t_boolean set, triggered, silent_traffic_generators;
   time_t trigger_time, minimum_seconds_between_traffic, maximum_seconds_between_traffic;
+  double spam_percentage;
 } s_events_description;
 typedef struct s_level_description {
   t_boolean set;

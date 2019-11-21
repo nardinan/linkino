@@ -17,55 +17,6 @@
  */
 #include "connectable.obj.h"
 unsigned int index_human_name = 0;
-const char *list_human_names[] = {
-  "David",
-  "John",
-  "Paul",
-  "Susan",
-  "Claire",
-  "Sharon",
-  "Angela",
-  "Gillian",
-  "Julie",
-  "Michelle",
-  "William",
-  "Craig",
-  "Michael",
-  "Louise",
-  "Alison",
-  "Colin",
-  "Donna",
-  "Caroline",
-  "Gary",
-  "Lynn",
-  "Derek",
-  "Martin",
-  "Lesley",
-  "Deborah",
-  "Pauline",
-  "Lorraine",
-  "Laura",
-  "Iain",
-  "Gordon",
-  "Alexander",
-  "Linda",
-  "Peter",
-  "Catherine",
-  "Wendy",
-  "Lynne",
-  "Kenneth",
-  "Pamela",
-  "Kirsty",
-  "Douglas",
-  "Emma",
-  "Joanne",
-  "Heather",
-  "Grant",
-  "Anne",
-  "Diane",
-  "Gavin",
-  NULL
-};
 struct s_connectable_attributes *p_connectable_alloc(struct s_object *self, struct s_object *stream, struct s_object *environment) {
   struct s_connectable_attributes *result = d_prepare(self, connectable);
   f_bitmap_new(self, stream, environment);  /* inherit */
@@ -73,13 +24,13 @@ struct s_connectable_attributes *p_connectable_alloc(struct s_object *self, stru
   return result;
 }
 extern struct s_object *f_connectable_new(struct s_object *self, struct s_object *stream, struct s_object *environment, struct s_object *ui_factory, 
-    t_boolean use_human_name, int flags) {
+    const char *unique_code, int flags) {
   struct s_connectable_attributes *connectable_attributes = p_connectable_alloc(self, stream, environment);
   memset(&(connectable_attributes->list_connection_nodes), 0, sizeof(struct s_list));
-  if (use_human_name) {
-    strncpy(connectable_attributes->unique_code, list_human_names[index_human_name++], d_connectable_code_size);
+  if (unique_code) {
+    strncpy(connectable_attributes->unique_code, unique_code, d_connectable_code_size);
     d_assert((connectable_attributes->ui_label = d_call(ui_factory, m_ui_factory_new_label, d_ui_factory_default_font_id, 
-            d_ui_factory_default_font_style, connectable_attributes->unique_code)));
+-            d_ui_factory_default_font_style, connectable_attributes->unique_code)));
   } else {
     for (unsigned int index = 0; index < (d_connectable_code_size - 1); ++index)
       connectable_attributes->unique_code[index] = ((rand() % (((char)'Z') - ((char)'A'))) + (char)'A');
@@ -99,6 +50,11 @@ d_define_method(connectable, set_generate_traffic_speed)(struct s_object *self, 
 d_define_method(connectable, set_silent)(struct s_object *self, t_boolean silent) {
   d_using(connectable);
   connectable_attributes->silent = silent;
+  return self;
+}
+d_define_method(connectable, set_spam_percentage)(struct s_object *self, double spam_percentage) {
+  d_using(connectable);
+  connectable_attributes->spam_percentage = spam_percentage;
   return self;
 }
 d_define_method(connectable, set_price)(struct s_object *self, double price) {
@@ -258,6 +214,7 @@ d_define_method(connectable, delete)(struct s_object *self, struct s_connectable
 }
 d_define_class(connectable) {d_hook_method(connectable, e_flag_public, set_generate_traffic_speed),
   d_hook_method(connectable, e_flag_public, set_silent),
+  d_hook_method(connectable, e_flag_public, set_spam_percentage),
   d_hook_method(connectable, e_flag_public, set_price),
   d_hook_method(connectable, e_flag_public, add_connection_point),
   d_hook_method(connectable, e_flag_public, is_traffic_generation_required),

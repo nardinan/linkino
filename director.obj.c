@@ -89,11 +89,12 @@ d_define_method(director, set_level)(struct s_object *self, struct s_level_descr
     if (level_description.stations[index].set) {
       d_call(director_attributes->connectable_factory, m_connectable_factory_add_connectable_instance, 
           level_description.stations[index].title,
+          level_description.stations[index].unique_code,
           level_description.stations[index].position_x,
           level_description.stations[index].position_y);
     }
 
-  d_call(director_attributes->connectable_factory, m_connectable_factory_set_silent, d_true);
+  d_call(director_attributes->connectable_factory, m_connectable_factory_set_silent, d_true, NULL);
   director_attributes->level_starting_time = time(NULL);
   return self;
 }
@@ -112,9 +113,11 @@ d_define_method(director, update_level)(struct s_object *self) {
         if (director_attributes->current_level.events[index].trigger_time < seconds_elapsed) {
           d_call(director_attributes->connectable_factory, m_connectable_factory_set_generate_traffic_speed,
               director_attributes->current_level.events[index].minimum_seconds_between_traffic,
-              director_attributes->current_level.events[index].maximum_seconds_between_traffic);
+              director_attributes->current_level.events[index].maximum_seconds_between_traffic, NULL);
           d_call(director_attributes->connectable_factory, m_connectable_factory_set_silent, 
-              director_attributes->current_level.events[index].silent_traffic_generators);
+              director_attributes->current_level.events[index].silent_traffic_generators, NULL);
+          d_call(director_attributes->connectable_factory, m_connectable_factory_set_spam_percentage,
+              director_attributes->current_level.events[index].spam_percentage, NULL);
           director_attributes->current_level.events[index].triggered = d_true;
         }
       }

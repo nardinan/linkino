@@ -115,7 +115,8 @@ d_define_method(connectable_factory, add_connectable_template)(struct s_object *
   }
   return self;
 }
-d_define_method(connectable_factory, add_connectable_instance)(struct s_object *self, const char *title, double position_x, double position_y) {
+d_define_method(connectable_factory, add_connectable_instance)(struct s_object *self, const char *title, const char *unique_code, 
+    double position_x, double position_y) {
   d_using(connectable_factory);
   struct s_connectable_factory_template *current_template = NULL;
   d_foreach(&(connectable_factory_attributes->list_templates), current_template, struct s_connectable_factory_template)
@@ -126,8 +127,8 @@ d_define_method(connectable_factory, add_connectable_instance)(struct s_object *
     /* we generate a random string that will be used to identify univocally the instance */
     /* we drop the active template and we create a new connectable that we push into the array */
     struct s_object *connectable =
-      f_connectable_new(d_new(connectable), current_template->stream, connectable_factory_attributes->environment, connectable_factory_attributes->ui_factory,
-          (((current_template->flags & d_connectable_generate_traffic) == d_connectable_generate_traffic)?d_true:d_false), current_template->flags);
+      f_connectable_new(d_new(connectable), current_template->stream, connectable_factory_attributes->environment, connectable_factory_attributes->ui_factory, 
+          unique_code, current_template->flags);
     d_call(connectable, m_connectable_set_price, current_template->price);
     d_call(connectable, m_drawable_set_position, position_x, position_y);
     for (size_t index_offset = 0; index_offset < current_template->connections; ++index_offset) {
@@ -141,22 +142,40 @@ d_define_method(connectable_factory, add_connectable_instance)(struct s_object *
   return self;
 }
 d_define_method(connectable_factory, set_generate_traffic_speed)(struct s_object *self, time_t minimum_seconds_between_traffic,
-    time_t maximum_seconds_between_traffic) {
+    time_t maximum_seconds_between_traffic, const char *unique_code) {
   d_using(connectable_factory);
   struct s_object *current_connectable;
   d_array_foreach(connectable_factory_attributes->array_connectable_instances, current_connectable) {
-    d_call(current_connectable, m_connectable_set_generate_traffic_speed, minimum_seconds_between_traffic, maximum_seconds_between_traffic);
+    struct s_connectable_attributes *connectable_attributes = d_cast(current_connectable, connectable);
+    if ((!unique_code) || (f_string_strcmp(connectable_attributes->unique_code, unique_code) == 0)) {
+      d_call(current_connectable, m_connectable_set_generate_traffic_speed, minimum_seconds_between_traffic, maximum_seconds_between_traffic);
+    }
   }
   return self;
 }
-d_define_method(connectable_factory, set_silent)(struct s_object *self, t_boolean silent) {
+d_define_method(connectable_factory, set_silent)(struct s_object *self, t_boolean silent, const char *unique_code) {
   d_using(connectable_factory);
   struct s_object *current_connectable;
   d_array_foreach(connectable_factory_attributes->array_connectable_instances, current_connectable) {
-    d_call(current_connectable, m_connectable_set_silent, silent);
+    struct s_connectable_attributes *connectable_attributes = d_cast(current_connectable, connectable);
+    if ((!unique_code) || (f_string_strcmp(connectable_attributes->unique_code, unique_code) == 0)) {
+      d_call(current_connectable, m_connectable_set_silent, silent);
+    }
   }
   return self;
 }
+d_define_method(connectable_factory, set_spam_percentage)(struct s_object *self, double spam_percentage, const char *unique_code) {
+  d_using(connectable_factory);
+  struct s_object *current_connectable;
+  d_array_foreach(connectable_factory_attributes->array_connectable_instances, current_connectable) {
+    struct s_connectable_attributes *connectable_attributes = d_cast(current_connectable, connectable);
+    if ((!unique_code) || (f_string_strcmp(connectable_attributes->unique_code, unique_code) == 0)) {
+      d_call(current_connectable, m_connectable_set_spam_percentage, spam_percentage);
+    }
+  }
+  return self;
+}
+
 d_define_method(connectable_factory, set_connector_selected)(struct s_object *self, t_boolean selected) {
   d_using(connectable_factory);
   connectable_factory_attributes->connector_selected = selected;
@@ -277,7 +296,7 @@ d_define_method_override(connectable_factory, event)(struct s_object *self, stru
     changed = d_true;
   } else if (connectable_factory_attributes->active_template) {
     if ((current_event->type == SDL_MOUSEBUTTONDOWN) && (current_event->button.button == SDL_BUTTON_LEFT)) {
-      d_call(self, m_connectable_factory_add_connectable_instance, connectable_factory_attributes->active_template->title, 
+      d_call(self, m_connectable_factory_add_connectable_instance, connectable_factory_attributes->active_template->title, NULL,
           connectable_factory_attributes->active_template->position_x, connectable_factory_attributes->active_template->position_y);
       connectable_factory_attributes->active_template = NULL;
     }
@@ -432,6 +451,7 @@ d_define_class(connectable_factory) {d_hook_method(connectable_factory, e_flag_p
   d_hook_method(connectable_factory, e_flag_public, add_connectable_instance),
   d_hook_method(connectable_factory, e_flag_public, set_generate_traffic_speed),
   d_hook_method(connectable_factory, e_flag_public, set_silent),
+  d_hook_method(connectable_factory, e_flag_public, set_spam_percentage),
   d_hook_method(connectable_factory, e_flag_public, set_connector_selected),
   d_hook_method(connectable_factory, e_flag_public, set_credit),
   d_hook_method(connectable_factory, e_flag_public, get_selected_node),

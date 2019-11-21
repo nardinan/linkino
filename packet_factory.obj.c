@@ -44,13 +44,14 @@ d_define_method(packet_factory, create_packet)(struct s_object *self, struct s_o
   struct s_object *connector;
   if (((connector = d_call(packet_factory_attributes->connector_factory, m_connector_factory_get_connector_with_source, ingoing_connectable_link))) ||
       ((connector = d_call(packet_factory_attributes->connector_factory, m_connector_factory_get_connector_with_destination, ingoing_connectable_link)))) {
+    struct s_connectable_attributes *connectable_attributes = d_cast(ingoing_connectable_link->connectable, connectable);
     enum e_media_factory_media_types type;
     struct s_object *drawable_icon, *drawable_background;
     /* first of all we need to check if the statistics of the connector has been already prepared */
     if (((drawable_icon = d_call(packet_factory_attributes->media_factory, m_media_factory_get_media, "mail_icon", &type))) &&
         ((drawable_background = d_call(packet_factory_attributes->media_factory, m_media_factory_get_media, "mail_background", &type)))) {
       struct s_object *packet;
-      int packet_flag = ((((rand() % 100) + 1) > (100 - d_packet_factory_spam_percentage))?d_packet_spam:0);
+      int packet_flag = ((((rand() % 100) + 1) > (100.0 - (100.0 * connectable_attributes->spam_percentage)))?d_packet_spam:0);
       if ((packet = f_packet_new(d_new(packet), packet_factory_attributes->ui_factory, drawable_icon, drawable_background, 
               "<EMPTY BODY />", packet_flag))) {
         struct s_connector_attributes *connector_attributes = d_cast(connector, connector);

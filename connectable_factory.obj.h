@@ -52,10 +52,12 @@ struct s_connectable_factory_attributes *p_connectable_factory_alloc(struct s_ob
 extern struct s_object *f_connectable_factory_new(struct s_object *self, struct s_object *ui_factory, struct s_object *environment);
 d_declare_method(connectable_factory, add_connectable_template)(struct s_object *self, struct s_object *stream, const char *title, const char *description,
     double *offsets_x, double *offsets_y, size_t connections, double price, int flags);
-d_declare_method(connectable_factory, add_connectable_instance)(struct s_object *self, const char *title, double position_x, double positon_y);
+d_declare_method(connectable_factory, add_connectable_instance)(struct s_object *self, const char *title, const char *unique_code,
+    double position_x, double positon_y);
 d_declare_method(connectable_factory, set_generate_traffic_speed)(struct s_object *self, time_t minimum_seconds_between_traffic,
-    time_t maximum_seconds_between_traffic);
-d_declare_method(connectable_factory, set_silent)(struct s_object *self, t_boolean silent);
+    time_t maximum_seconds_between_traffic, const char *unique_code);
+d_declare_method(connectable_factory, set_silent)(struct s_object *self, t_boolean silent, const char *unique_code);
+d_declare_method(connectable_factory, set_spam_percentage)(struct s_object *self, double spam_percentage, const char *unique_code);
 d_declare_method(connectable_factory, set_connector_selected)(struct s_object *self, t_boolean selected);
 d_declare_method(connectable_factory, set_credit)(struct s_object *self, double credit);
 d_declare_method(connectable_factory, get_selected_node)(struct s_object *self);

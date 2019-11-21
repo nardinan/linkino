@@ -87,11 +87,13 @@ int linkino_loop_call(struct s_object *environment) {
           {
             d_true,
             "STATION",
+            "Cem",
             100.0,
             200.0
           },{
             d_true,
             "STATION",
+            "Ian",
             200.0,
             300.0
           },{
@@ -103,9 +105,18 @@ int linkino_loop_call(struct s_object *environment) {
             d_true,
             d_false,
             d_false,
+            30,
+            1,
+            2,
+            1.0
+          },{
+            d_true,
+            d_false,
+            d_false,
             120,
             5,
-            10
+            10,
+            0.1
           },{
             d_false
           }
