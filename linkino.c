@@ -90,31 +90,56 @@ int linkino_loop_call(struct s_object *environment) {
             "STATION",
             "Cem",
             50.0,
-            320.0
+            320.0,
+            {
+              {
+                d_true,
+                d_false,
+                d_false,
+                60,
+                2,
+                5,
+                0.8
+              },{
+                d_false
+              }
+            }
           },{
             d_true,
-            "STATION",
-            "Ian",
-            350.0,
-            300.0
+              "STATION",
+              "Ian",
+              350.0,
+              300.0,
+              {
+                { d_false }
+              }
           },{
             d_true,
-            "STATION",
-            "Robin",
-            500.0,
-            300.0
+              "STATION",
+              "Robin",
+              500.0,
+              300.0,
+              {
+                { d_false }
+              }
           },{
             d_true,
-            "STATION",
-            "Paul",
-            350.0,
-            180.0
+              "STATION",
+              "Paul",
+              350.0,
+              180.0,
+              {
+                { d_false }
+              }
           },{
             d_true,
-            "STATION",
-            "Julien",
-            500.0,
-            180.0
+              "STATION",
+              "Julien",
+              500.0,
+              180.0,
+              {
+                { d_false }
+              }
           },{
             d_false
           }
@@ -124,18 +149,26 @@ int linkino_loop_call(struct s_object *environment) {
             d_true,
             d_false,
             d_false,
-            30,
-            1,
+            60,
             2,
-            1.0
+            5,
+            0.0
           },{
             d_true,
             d_false,
             d_false,
-            120,
-            5,
-            10,
-            0.1
+            300,
+            8,
+            15,
+            0.3
+          },{
+            d_true,
+            d_false,
+            d_false,
+            420,
+            2,
+            3,
+            0.0
           },{
             d_false
           }
@@ -199,12 +232,12 @@ int main(int argc, char *argv[]) {
       d_call(environment, m_environment_set_methods, &linkino_load_call_start, &linkino_loop_call, &linkino_quit_call);
       environment_attributes = d_cast(environment, environment);
       if ((default_draw_camera =
-             f_camera_new(d_new(camera), 0.0, 0.0, environment_attributes->current_w, environment_attributes->current_h, e_environment_surface_primary,
-               environment))) {
+            f_camera_new(d_new(camera), 0.0, 0.0, environment_attributes->current_w, environment_attributes->current_h, e_environment_surface_primary,
+              environment))) {
         d_call(default_draw_camera, m_camera_set_reference, (double)scale_resolution_x, (double)scale_resolution_y);
         d_call(default_draw_camera, m_camera_set_center, (double)0.0, (double)0.0);
         if ((default_ui_camera =
-               f_camera_new(d_new(camera), 0.0, 0.0, environment_attributes->current_w, environment_attributes->current_h, e_environment_surface_ui, environment))) {
+              f_camera_new(d_new(camera), 0.0, 0.0, environment_attributes->current_w, environment_attributes->current_h, e_environment_surface_ui, environment))) {
           d_call(default_ui_camera, m_camera_set_reference, (double)scale_resolution_x, (double)scale_resolution_y);
           d_call(default_ui_camera, m_camera_set_center, (double)0.0, (double)0.0);
           d_call(environment, m_environment_add_camera, label_camera, default_draw_camera);

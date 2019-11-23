@@ -33,16 +33,17 @@ enum e_director_statistics_label {
   e_statistics_clock,
   e_statistics_NULL
 };
-typedef struct s_station_description {
-  t_boolean set;
-  char *title, *unique_code;
-  double position_x, position_y;
-} s_station_description;
 typedef struct s_events_description {
   t_boolean set, triggered, silent_traffic_generators;
   time_t trigger_time, minimum_seconds_between_traffic, maximum_seconds_between_traffic;
   double spam_percentage;
 } s_events_description;
+typedef struct s_station_description {
+  t_boolean set;
+  char *title, *unique_code;
+  double position_x, position_y;
+  struct s_events_description events[d_director_events];
+} s_station_description;
 typedef struct s_level_description {
   t_boolean set;
   char minimum_class;
@@ -72,6 +73,7 @@ d_declare_method(director, add_node)(struct s_object *self, const char *stream_i
     double *offsets_y, size_t connections, double price, int flags);
 d_declare_method(director, set_level)(struct s_object *self, struct s_level_description level_description);
 d_declare_method(director, update_level)(struct s_object *self);
+d_declare_method(director, update_event)(struct s_object *self, struct s_events_description *event, const char *unique_code, time_t seconds_elapsed);
 d_declare_method(director, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event);
 d_declare_method(director, draw)(struct s_object *self, struct s_object *environment);
 d_declare_method(director, delete)(struct s_object *self, struct s_director_attributes *attributes);

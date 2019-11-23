@@ -119,19 +119,33 @@ d_define_method(director, update_level)(struct s_object *self) {
     snprintf(buffer, d_string_buffer_size, "%02zu:%02zu", current_hour, current_minutes);
     d_call(director_attributes->ui_labels[e_statistics_clock]->uiable, m_label_set_content_char, buffer, NULL, director_attributes->environment);
     for (size_t index = 0; index < d_director_events; ++index)
-      if ((director_attributes->current_level.events[index].set) && (!director_attributes->current_level.events[index].triggered)) {
-        if (director_attributes->current_level.events[index].trigger_time < seconds_elapsed) {
-          d_call(director_attributes->connectable_factory, m_connectable_factory_set_generate_traffic_speed,
-              director_attributes->current_level.events[index].minimum_seconds_between_traffic,
-              director_attributes->current_level.events[index].maximum_seconds_between_traffic, NULL);
-          d_call(director_attributes->connectable_factory, m_connectable_factory_set_silent, 
-              director_attributes->current_level.events[index].silent_traffic_generators, NULL);
-          d_call(director_attributes->connectable_factory, m_connectable_factory_set_spam_percentage,
-              director_attributes->current_level.events[index].spam_percentage, NULL);
-          director_attributes->current_level.events[index].triggered = d_true;
-        }
-      }
+      if (director_attributes->current_level.events[index].set) {
+        d_call(self, m_director_update_event, &(director_attributes->current_level.events[index]), NULL, seconds_elapsed);
+      } else
+        break;
+    for (size_t index_station = 0; index_station < d_director_stations; ++index_station)
+      if (director_attributes->current_level.stations[index_station].set) {
+        for (size_t index_event = 0; index_event < d_director_events; ++index_event)
+          if (director_attributes->current_level.stations[index_station].events[index_event].set) {
+            d_call(self, m_director_update_event, &(director_attributes->current_level.stations[index_station].events[index_event]),
+                director_attributes->current_level.stations[index_station].unique_code, seconds_elapsed);
+          } else
+            break;
+      } else
+        break;
   }
+  return self;
+}
+d_define_method(director, update_event)(struct s_object *self, struct s_events_description *event, const char *unique_code, time_t seconds_elapsed) {
+  d_using(director);
+  if ((event->set) && (!event->triggered))
+    if (event->trigger_time < seconds_elapsed) {
+      d_call(director_attributes->connectable_factory, m_connectable_factory_set_generate_traffic_speed, event->minimum_seconds_between_traffic,
+          event->maximum_seconds_between_traffic, unique_code);
+      d_call(director_attributes->connectable_factory, m_connectable_factory_set_silent, event->silent_traffic_generators, unique_code);
+      d_call(director_attributes->connectable_factory, m_connectable_factory_set_spam_percentage, event->spam_percentage, unique_code);
+      event->triggered = d_true;
+    }
   return self;
 }
 d_define_method_override(director, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event) {
@@ -197,6 +211,7 @@ d_declare_method(director, delete)(struct s_object *self, struct s_director_attr
 d_define_class(director) {d_hook_method(director, e_flag_public, add_node),
   d_hook_method(director, e_flag_public, set_level),
   d_hook_method(director, e_flag_private, update_level),
+  d_hook_method(director, e_flag_private, update_event),
   d_hook_method_override(director, e_flag_public, eventable, event),
   d_hook_method_override(director, e_flag_public, drawable, draw),
   d_hook_delete(director),
