@@ -83,6 +83,8 @@ d_define_method(packet_factory, forward_packet)(struct s_object *self, struct s_
         packet_attributes->traveling_speed += d_packet_factory_acceleration_factor;
       if ((connectable_attributes->flags & d_connectable_accelerate_alot) == d_connectable_accelerate_alot)
         packet_attributes->traveling_speed += (d_packet_factory_acceleration_factor * 2.0);
+      if ((connectable_attributes->flags & d_connectable_slow_down_traffic) == d_connectable_slow_down_traffic)
+        packet_attributes->traveling_speed -= d_packet_factory_slow_down_factor;
       if (((packet_attributes->flags & d_packet_spam) == d_packet_spam) && 
           ((connectable_attributes->flags & d_connectable_block_spam) == d_connectable_block_spam)) {
         /* we need to block the packet: it has been blocked by the node */

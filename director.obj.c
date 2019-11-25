@@ -26,14 +26,15 @@ struct s_director_attributes *p_director_alloc(struct s_object *self) {
 }
 extern struct s_object *f_director_new(struct s_object *self, struct s_object *environment, struct s_object *ui_factory, struct s_object *media_factory) {
   struct s_director_attributes *director_attributes = p_director_alloc(self);
-  struct s_object *drawable_line_step;
+  struct s_object *drawable_line_step, *drawable_line_snap;
   struct s_uiable_container *container;
   director_attributes->environment = d_retain(environment);
   director_attributes->ui_factory = d_retain(ui_factory);
   director_attributes->media_factory = d_retain(media_factory);
   d_assert((drawable_line_step = d_call(media_factory, m_media_factory_get_bitmap, "line_spot")));
+  d_assert((drawable_line_snap = d_call(media_factory, m_media_factory_get_bitmap, "line_snap")));
   d_assert((director_attributes->statistics = f_statistics_new(d_new(statistics))));
-  d_assert((director_attributes->connector_factory = f_connector_factory_new(d_new(connector_factory), drawable_line_step,
+  d_assert((director_attributes->connector_factory = f_connector_factory_new(d_new(connector_factory), drawable_line_step, drawable_line_snap,
           director_attributes->statistics)));
   d_assert((director_attributes->connectable_factory = f_connectable_factory_new(d_new(connectable_factory), ui_factory, environment)));
   d_assert((director_attributes->packet_factory = f_packet_factory_new(d_new(packet_factory), director_attributes->ui_factory, 

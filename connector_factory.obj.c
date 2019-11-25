@@ -25,12 +25,13 @@ struct s_connector_factory_attributes *p_connector_factory_alloc(struct s_object
   f_eventable_new(self);                                                              /* inherit */
   return result;
 }
-struct s_object *f_connector_factory_new(struct s_object *self, struct s_object *drawable, struct s_object *statistics) {
+struct s_object *f_connector_factory_new(struct s_object *self, struct s_object *drawable_line, struct s_object *drawable_snap, struct s_object *statistics) {
   struct s_connector_factory_attributes *connector_factory_attributes = p_connector_factory_alloc(self);
-  if ((connector_factory_attributes->drawable = d_retain(drawable))) {
-    connector_factory_attributes->array_of_connectors = f_array_new(d_new(array), d_array_bucket);
-    connector_factory_attributes->statistics = d_retain(statistics);
-  }
+  if ((connector_factory_attributes->drawable_line = d_retain(drawable_line)))
+    if ((connector_factory_attributes->drawable_snap = d_retain(drawable_snap))) {
+      connector_factory_attributes->array_of_connectors = f_array_new(d_new(array), d_array_bucket);
+      connector_factory_attributes->statistics = d_retain(statistics);
+    }
   return self;
 }
 d_define_method(connector_factory, set_drop)(struct s_object *self, t_boolean approve_drop, struct s_connectable_link *link) {
@@ -174,7 +175,7 @@ d_define_method(connector_factory, force_snap)(struct s_object *self, struct s_o
 d_define_method_override(connector_factory, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event) {
   d_using(connector_factory);
   t_boolean changed = d_false;
-  if (connector_factory_attributes->drawable) {
+  if (connector_factory_attributes->drawable_line) {
     int mouse_x, mouse_y;
     d_call(environment, m_environment_get_mouse_normalized, "draw_camera", &mouse_x, &mouse_y);
     if (connector_factory_attributes->active_connector) {
@@ -215,7 +216,7 @@ d_define_method_override(connector_factory, event)(struct s_object *self, struct
          */
         if (current_event->button.button == SDL_BUTTON_LEFT) {
           connector_factory_attributes->active_connector =
-            f_connector_new(d_new(connector), connector_factory_attributes->drawable, connector_factory_attributes->source_link->final_position_x,
+            f_connector_new(d_new(connector), connector_factory_attributes->drawable_line, connector_factory_attributes->source_link->final_position_x,
                 connector_factory_attributes->source_link->final_position_y, connector_factory_attributes->source_link);
           changed = d_true;
         }
@@ -243,7 +244,7 @@ d_define_method_override(connector_factory, draw)(struct s_object *self, struct 
   d_using(connector_factory);
   struct s_environment_attributes *environment_attributes = d_cast(environment, environment);
   struct s_camera_attributes *camera_attributes = d_cast(environment_attributes->current_camera, camera);
-  if (connector_factory_attributes->drawable) {
+  if (connector_factory_attributes->drawable_line) {
     struct s_object *current_connector;
     d_call(self, m_connector_factory_check_snapped, NULL);
     if (connector_factory_attributes->active_connector)
@@ -270,8 +271,10 @@ d_define_method(connector_factory, reset)(struct s_object *self) {
 d_define_method(connector_factory, delete)(struct s_object *self, struct s_connector_factory_attributes *attributes) {
   if (attributes->array_of_connectors)
     d_delete(attributes->array_of_connectors);
-  if (attributes->drawable)
-    d_delete(attributes->drawable);
+  if (attributes->drawable_line)
+    d_delete(attributes->drawable_line);
+  if (attributes->drawable_snap)
+    d_delete(attributes->drawable_snap);
   if (attributes->statistics)
     d_delete(attributes->statistics);
   return NULL;

@@ -71,7 +71,7 @@ int linkino_loop_call(struct s_object *environment) {
       d_call(director, m_director_add_node, "router", "ROUTER", "It routes the packet to destination", offsets_x_router, offsets_y_router, 
           (size_t)4, 150.0, (d_connectable_can_be_acquired));
       d_call(director, m_director_add_node, "firewall", "FIREWALL", "It removes the spam", offsets_x_firewall, offsets_y_firewall, 
-          (size_t)2, 200.0, (d_connectable_can_be_acquired | d_connectable_block_spam));
+          (size_t)2, 200.0, (d_connectable_can_be_acquired | d_connectable_block_spam | d_connectable_slow_down_traffic));
       d_call(director, m_director_add_node, "shaper", "SHAPER", "It shapes the traffic", offsets_x_shaper, offsets_y_shaper, 
           (size_t)3, 200.0, (d_connectable_can_be_acquired | d_connectable_shape_traffic));
       d_call(director, m_director_add_node, "computer", "STATION", "A basic PC", offsets_x_computer, offsets_y_computer, 

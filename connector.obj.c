@@ -23,9 +23,9 @@ struct s_connector_attributes *p_connector_alloc(struct s_object *self) {
   f_drawable_new(self, (e_drawable_kind_single | e_drawable_kind_force_visibility));  /* inherit */
   return result;
 }
-struct s_object *f_connector_new(struct s_object *self, struct s_object *drawable, double source_x, double source_y, struct s_connectable_link *link) {
+struct s_object *f_connector_new(struct s_object *self, struct s_object *drawable_line, double source_x, double source_y, struct s_connectable_link *link) {
   struct s_connector_attributes *connector_attributes = p_connector_alloc(self);
-  if ((connector_attributes->drawable = d_retain(drawable))) {
+  if ((connector_attributes->drawable_line = d_retain(drawable_line))) {
     connector_attributes->separation = 0.5; /* by default is half of the line */
     d_assert(connector_attributes->starting_point = f_point_new(d_new(point), source_x, source_y));
     d_assert(connector_attributes->destination_point = f_point_new(d_new(point), source_x, source_y));
@@ -38,7 +38,7 @@ struct s_object *f_connector_new(struct s_object *self, struct s_object *drawabl
 }
 d_define_method(connector, set_starting)(struct s_object *self, double starting_x, double starting_y, struct s_connectable_link *link) {
   d_using(connector);
-  if (connector_attributes->drawable)
+  if (connector_attributes->drawable_line)
     d_call(connector_attributes->starting_point, m_point_set, starting_x, starting_y);
   if ((connector_attributes->source_link) && (connector_attributes->source_link->connector)) {
     d_delete(connector_attributes->source_link->connector);
@@ -49,7 +49,7 @@ d_define_method(connector, set_starting)(struct s_object *self, double starting_
 }
 d_define_method(connector, set_destination)(struct s_object *self, double destination_x, double destination_y, struct s_connectable_link *link) {
   d_using(connector);
-  if (connector_attributes->drawable) {
+  if (connector_attributes->drawable_line) {
     d_call(connector_attributes->destination_point, m_point_set, destination_x, destination_y);
   }
   if ((connector_attributes->destination_link) && (connector_attributes->destination_link->connector)) {
@@ -193,7 +193,7 @@ d_define_method_override(connector, draw)(struct s_object *self, struct s_object
   /* eventually, if the load of the arc is below 1.0, we update the timer in order to avoid a possible snap */
   if (connector_attributes->current_weight < d_connector_overload_limitation)
     connector_attributes->last_timestamp_below_maximum = time(NULL);
-  if ((connector_attributes->destination_point) && (connector_attributes->drawable)) {
+  if ((connector_attributes->destination_point) && (connector_attributes->drawable_line)) {
     double starting_position_x, starting_position_y, final_position_x, final_position_y, length_first_half = 0, length_second_half = 0, drawable_width,
            drawable_height, higher_vertical_position, lower_vertical_position, 
            normalized_weight = d_math_min(1.0, d_math_max(connector_attributes->current_weight, 0.0));
@@ -202,8 +202,8 @@ d_define_method_override(connector, draw)(struct s_object *self, struct s_object
     int segment_index = 0;
     t_boolean reached;
     /* we need to mask the drawable using the current_weight */
-    d_call(connector_attributes->drawable, m_drawable_set_maskRGB, current_mask_red, current_mask_blue, current_mask_green);
-    d_call(connector_attributes->drawable, m_drawable_get_dimension, &drawable_width, &drawable_height);
+    d_call(connector_attributes->drawable_line, m_drawable_set_maskRGB, current_mask_red, current_mask_blue, current_mask_green);
+    d_call(connector_attributes->drawable_line, m_drawable_get_dimension, &drawable_width, &drawable_height);
     d_call(connector_attributes->starting_point, m_point_get, &starting_position_x, &starting_position_y);
     d_call(connector_attributes->destination_point, m_point_get, &final_position_x, &final_position_y);
     /* We consider the starting point the leftmost point, and the final one the other one. We also have to consider the highest
@@ -237,24 +237,24 @@ d_define_method_override(connector, draw)(struct s_object *self, struct s_object
      */
     length_first_half = connector_attributes->separation * (final_position_x - starting_position_x) - drawable_height;
     length_second_half = (1.0 - connector_attributes->separation) * (final_position_x - starting_position_x) - drawable_height;
-    d_call(connector_attributes->drawable, m_drawable_set_angle, 0.0);
+    d_call(connector_attributes->drawable_line, m_drawable_set_angle, 0.0);
     reached = d_false;
     connector_attributes->segments[segment_index].initialized = d_true;
     connector_attributes->segments[segment_index].position_x = starting_position_x;
     connector_attributes->segments[segment_index].position_y = starting_position_y;
     for (double position_x = starting_position_x; (!reached); position_x += drawable_width) {
-      d_call(connector_attributes->drawable, m_drawable_set_position, position_x, starting_position_y);
+      d_call(connector_attributes->drawable_line, m_drawable_set_position, position_x, starting_position_y);
       if (position_x >= (starting_position_x + length_first_half)) {
         break;
       } else if ((position_x + drawable_width) > (starting_position_x + length_first_half)) {
-        d_call(connector_attributes->drawable, m_drawable_set_dimension_w, ((starting_position_x + length_first_half) - position_x));
+        d_call(connector_attributes->drawable_line, m_drawable_set_dimension_w, ((starting_position_x + length_first_half) - position_x));
         reached = d_true;
       } else
-        d_call(connector_attributes->drawable, m_drawable_set_dimension_w, drawable_width);
-      if ((d_call(connector_attributes->drawable, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
+        d_call(connector_attributes->drawable_line, m_drawable_set_dimension_w, drawable_width);
+      if ((d_call(connector_attributes->drawable_line, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
               camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
               camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
-        while (((intptr_t)d_call(connector_attributes->drawable, m_drawable_draw, environment)) == d_drawable_return_continue);
+        while (((intptr_t)d_call(connector_attributes->drawable_line, m_drawable_draw, environment)) == d_drawable_return_continue);
     }
     connector_attributes->segments[++segment_index].initialized = d_true;
     connector_attributes->segments[segment_index].position_x = (starting_position_x + length_first_half);
@@ -264,42 +264,42 @@ d_define_method_override(connector, draw)(struct s_object *self, struct s_object
     connector_attributes->segments[segment_index].position_x = (final_position_x - length_second_half);
     connector_attributes->segments[segment_index].position_y = final_position_y;
     for (double position_x = (final_position_x - length_second_half); (!reached); position_x += drawable_width) {
-      d_call(connector_attributes->drawable, m_drawable_set_position, position_x, final_position_y);
+      d_call(connector_attributes->drawable_line, m_drawable_set_position, position_x, final_position_y);
       if (position_x >= final_position_x) {
         break;
       } else if ((position_x + drawable_width) > final_position_x) {
-        d_call(connector_attributes->drawable, m_drawable_set_dimension_w, (final_position_x - position_x));
+        d_call(connector_attributes->drawable_line, m_drawable_set_dimension_w, (final_position_x - position_x));
         reached = d_true;
       } else
-        d_call(connector_attributes->drawable, m_drawable_set_dimension_w, drawable_width);
-      if ((d_call(connector_attributes->drawable, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
+        d_call(connector_attributes->drawable_line, m_drawable_set_dimension_w, drawable_width);
+      if ((d_call(connector_attributes->drawable_line, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
               camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
               camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
-        while (((intptr_t)d_call(connector_attributes->drawable, m_drawable_draw, environment)) == d_drawable_return_continue);
+        while (((intptr_t)d_call(connector_attributes->drawable_line, m_drawable_draw, environment)) == d_drawable_return_continue);
     }
     connector_attributes->segments[++segment_index].initialized = d_true;
     connector_attributes->segments[segment_index].position_x = final_position_x;
     connector_attributes->segments[segment_index].position_y = final_position_y;
     if (higher_vertical_position > lower_vertical_position) {
-      d_call(connector_attributes->drawable, m_drawable_set_angle, 90.0);
+      d_call(connector_attributes->drawable_line, m_drawable_set_angle, 90.0);
       reached = d_false;
       for (double position_y = lower_vertical_position; (!reached); position_y += drawable_width) {
-        d_call(connector_attributes->drawable, m_drawable_set_position, (starting_position_x + length_first_half), position_y);
+        d_call(connector_attributes->drawable_line, m_drawable_set_position, (starting_position_x + length_first_half), position_y);
         if (position_y >= higher_vertical_position) {
           break;
         } else if ((position_y + drawable_width) > higher_vertical_position) {
-          d_call(connector_attributes->drawable, m_drawable_set_dimension_w, (higher_vertical_position - position_y));
+          d_call(connector_attributes->drawable_line, m_drawable_set_dimension_w, (higher_vertical_position - position_y));
           reached = d_true;
         } else
-          d_call(connector_attributes->drawable, m_drawable_set_dimension_w, drawable_width);
-        if ((d_call(connector_attributes->drawable, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
+          d_call(connector_attributes->drawable_line, m_drawable_set_dimension_w, drawable_width);
+        if ((d_call(connector_attributes->drawable_line, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
                 camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
                 camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
-          while (((intptr_t)d_call(connector_attributes->drawable, m_drawable_draw, environment)) == d_drawable_return_continue);
+          while (((intptr_t)d_call(connector_attributes->drawable_line, m_drawable_draw, environment)) == d_drawable_return_continue);
       }
     }
     /* we need to restore the right size before leaving */
-    d_call(connector_attributes->drawable, m_drawable_set_dimension_w, drawable_width);
+    d_call(connector_attributes->drawable_line, m_drawable_set_dimension_w, drawable_width);
   }
   d_cast_return(d_drawable_return_last);
 }
@@ -326,8 +326,8 @@ d_define_method(connector, delete)(struct s_object *self, struct s_connector_att
     d_delete(attributes->source_link->connector);
     attributes->source_link->connector = NULL;
   }
-  if (attributes->drawable)
-    d_delete(attributes->drawable);
+  if (attributes->drawable_line)
+    d_delete(attributes->drawable_line);
   if (attributes->starting_point)
     d_delete(attributes->starting_point);
   if (attributes->destination_point)

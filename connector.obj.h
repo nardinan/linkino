@@ -32,14 +32,15 @@ struct s_connector_segment {
 d_declare_class(connector) {
   struct s_attributes head;
   struct s_object *starting_point, *destination_point;
-  struct s_object *drawable;
-  double separation, target_weight, current_weight;
+  struct s_object *drawable_line;
+  double separation, target_weight, current_weight, center_position_x, center_position_y;
   struct s_connectable_link *source_link, *destination_link;
   struct s_connector_segment segments[d_connector_maximum_segments];
   time_t snapping_time, last_timestamp_below_maximum;
 } d_declare_class_tail(connector);
 struct s_connector_attributes *p_connector_alloc(struct s_object *self);
-extern struct s_object *f_connector_new(struct s_object *self, struct s_object *drawable, double source_x, double source_y, struct s_connectable_link *link);
+extern struct s_object *f_connector_new(struct s_object *self, struct s_object *drawable_line, double source_x, 
+    double source_y, struct s_connectable_link *link);
 d_declare_method(connector, set_starting)(struct s_object *self, double starting_x, double starting_y, struct s_connectable_link *link);
 d_declare_method(connector, set_destination)(struct s_object *self, double destination_x, double destination_y, struct s_connectable_link *link);
 d_declare_method(connector, set_weight)(struct s_object *self, double current_weight);

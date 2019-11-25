@@ -253,7 +253,7 @@ d_define_method(connectable_factory, click_received_sell)(struct s_object *self)
       }
   connectable_factory_attributes->delete_connectable = NULL;
   d_call(connectable_factory_attributes->environment, m_environment_del_drawable, connectable_factory_attributes->ui_container_sell_confirmation, 
-      (d_ui_factory_default_level + 1), e_environment_surface_primary);
+      (d_ui_factory_default_level + 3), e_environment_surface_primary);
   connectable_factory_attributes->ui_container_sell_confirmation_visible = d_false;
   return self;
 }
@@ -261,7 +261,7 @@ d_define_method(connectable_factory, click_received_cancel)(struct s_object *sel
   d_using(connectable_factory);
   connectable_factory_attributes->delete_connectable = NULL;
   d_call(connectable_factory_attributes->environment, m_environment_del_drawable, connectable_factory_attributes->ui_container_sell_confirmation, 
-      (d_ui_factory_default_level + 1), e_environment_surface_primary);
+      (d_ui_factory_default_level + 3), e_environment_surface_primary);
   connectable_factory_attributes->ui_container_sell_confirmation_visible = d_false;
   return self;
 }
@@ -428,7 +428,7 @@ d_define_method(connectable_factory, reset)(struct s_object *self) {
   d_call(connectable_factory_attributes->array_connectable_instances, m_array_clear, NULL);
   if (connectable_factory_attributes->ui_container_sell_confirmation_visible) {
     d_call(connectable_factory_attributes->environment, m_environment_del_drawable, connectable_factory_attributes->ui_container_sell_confirmation, 
-        (d_ui_factory_default_level + 1), e_environment_surface_primary);
+        (d_ui_factory_default_level + 3), e_environment_surface_primary);
     connectable_factory_attributes->ui_container_sell_confirmation_visible = d_false;
   }
   connectable_factory_attributes->active_connectable = NULL;
