@@ -19,12 +19,24 @@
 #define linkino_connector_factory_h
 #include "connector.obj.h"
 #include "connectable.obj.h"
+#define d_connector_factory_snap_initial_zoom 0.05
+#define d_connector_factory_snap_final_zoom 2.00
+#define d_connector_factory_snap_increment_zoom 0.05
+#define d_connector_factory_snap_initial_mask 255
+#define d_connector_factory_snap_final_mask 0
+#define d_connector_factory_snap_increment_mask 5
+struct s_snap_effect { d_list_node_head;
+  double position_x, position_y, current_zoom;
+  int current_mask_A;
+  t_boolean is_over;
+} s_snap_effect;
 d_declare_class(connector_factory) {
   struct s_attributes head;
   struct s_object *active_connector;
   struct s_object *array_of_connectors;
   struct s_object *drawable_line, *drawable_snap;
   struct s_object *statistics;
+  struct s_list snap_running_effects;
   t_boolean approve_drop;
   unsigned int snapped_connectors;
   struct s_connectable_link *source_link, *destination_link;

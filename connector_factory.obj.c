@@ -17,6 +17,9 @@
  */
 #include "connector_factory.obj.h"
 #include "statistics.obj.h"
+#include <miranda/list.h>
+#include <miranda/logs.h>
+#include <miranda/objects/media/drawable.obj.h>
 struct s_connector_factory_attributes *p_connector_factory_alloc(struct s_object *self) {
   struct s_connector_factory_attributes *result = d_prepare(self, connector_factory);
   f_memory_new(self);                                                                 /* inherit */
@@ -141,7 +144,17 @@ d_define_method(connector_factory, check_snapped)(struct s_object *self) {
       if ((current_connector = d_call(connector_factory_attributes->array_of_connectors, m_array_get, index)))
         if (d_call(current_connector, m_connector_is_snapped, NULL)) {
           struct s_connector_attributes *connector_attributes = d_cast(current_connector, connector);
-          /* the connector has been snapped! Damn! */
+          struct s_snap_effect *current_snap_effect;
+          /* the connector has been snapped! Damn! We'll start by creating a new snap effect at the center of the connectable */
+          if ((current_snap_effect = (struct s_snap_effect *)d_malloc(sizeof(struct s_snap_effect)))) {
+            current_snap_effect->position_x = connector_attributes->center_position_x;
+            current_snap_effect->position_y = connector_attributes->center_position_y;
+            current_snap_effect->current_zoom = d_connector_factory_snap_initial_zoom;
+            current_snap_effect->current_mask_A = d_connector_factory_snap_initial_mask;
+            f_list_append(&(connector_factory_attributes->snap_running_effects), (struct s_list_node *)current_snap_effect, e_list_insert_head);
+          } else
+            d_die(d_error_malloc);
+          /* now, if everything is fine, we can delete the arch */
           if ((connector_attributes->source_link) && (connector_attributes->destination_link))
             printf("ARC between %s (link %s) and %s (link %s) SNAPPED due to an overload\n", connector_attributes->source_link->unique_code,
                 connector_attributes->source_link->label, connector_attributes->destination_link->unique_code, connector_attributes->destination_link->label);
@@ -257,6 +270,45 @@ d_define_method_override(connector_factory, draw)(struct s_object *self, struct 
               camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
               camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
         while (((intptr_t)d_call(current_connector, m_drawable_draw, environment)) == d_drawable_return_continue);
+    if (connector_factory_attributes->drawable_snap) {
+      struct s_snap_effect *current_snap_effect;
+      t_boolean removable_elements = d_false;
+      d_foreach(&(connector_factory_attributes->snap_running_effects), current_snap_effect, struct s_snap_effect) {
+        /* first we need to update the token */
+        if (current_snap_effect->current_zoom >= d_connector_factory_snap_final_zoom) {
+          if (current_snap_effect->current_mask_A <= d_connector_factory_snap_final_mask) {
+            /* OK the effect is over, we can safely remove it fron the list */
+            current_snap_effect->is_over = d_true;
+          } else
+            current_snap_effect->current_mask_A -= d_connector_factory_snap_increment_mask;
+        } else
+          current_snap_effect->current_zoom += d_connector_factory_snap_increment_zoom;
+        if (!current_snap_effect->is_over) {
+          d_call(connector_factory_attributes->drawable_snap, m_drawable_set_zoom, current_snap_effect->current_zoom);
+          d_call(connector_factory_attributes->drawable_snap, m_drawable_set_maskA, current_snap_effect->current_mask_A);
+          d_call(connector_factory_attributes->drawable_snap, m_drawable_set_position, current_snap_effect->position_x, 
+              current_snap_effect->position_y);
+          if ((d_call(connector_factory_attributes->drawable_snap, m_drawable_normalize_scale, camera_attributes->scene_reference_w,
+                  camera_attributes->scene_reference_h, camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, 
+                  camera_attributes->scene_center_x, camera_attributes->scene_center_y, camera_attributes->screen_w, camera_attributes->screen_h, 
+                  camera_attributes->scene_zoom)))
+            while (((intptr_t)d_call(connector_factory_attributes->drawable_snap, m_drawable_draw, environment)) == d_drawable_return_continue);
+        } else
+          removable_elements = d_true;
+      }
+      if (removable_elements)
+        /* there are elements in the list that might be removed, so we quickly go ahead until all the elements have been removed */
+        while (removable_elements) {
+          removable_elements = d_false;
+          d_foreach(&(connector_factory_attributes->snap_running_effects), current_snap_effect, struct s_snap_effect)
+            if (current_snap_effect->is_over) {
+              f_list_delete(&(connector_factory_attributes->snap_running_effects), (struct s_list_node *)current_snap_effect);
+              d_free(current_snap_effect);
+              removable_elements = d_true;
+              break;
+            }
+        }
+    }
   }
   d_cast_return(d_drawable_return_last);
 }

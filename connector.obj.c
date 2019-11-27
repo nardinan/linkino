@@ -227,6 +227,9 @@ d_define_method_override(connector, draw)(struct s_object *self, struct s_object
      * whole line will move down by half of the width of the image */
     higher_vertical_position += (drawable_width / 2.0);
     lower_vertical_position += (drawable_width / 2.0);
+    /* we register the center of the line for furhter references */
+    connector_attributes->center_position_x = starting_position_x + ((final_position_x - starting_position_x)/2.0);
+    connector_attributes->center_position_y = lower_vertical_position + ((higher_vertical_position - lower_vertical_position)/2.0);
     /* The line is composed by two (or three) components that are associated respectively to a horizontal displacement,
      * a vertical displacement and another horizontal displacement:
      *  - first horizontal part (displacement in X)
