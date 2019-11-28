@@ -17,12 +17,13 @@
  */
 #ifndef linkino_director_h
 #define linkino_director_h
-#define d_director_events 24
-#define d_director_stations 15
 #include "connector_factory.obj.h"
 #include "connectable_factory.obj.h"
 #include "packet_factory.obj.h"
 #include "statistics.obj.h"
+#define d_director_events 24
+#define d_director_stations 15
+#define d_director_default_intro_maskA 220
 enum e_director_statistics_label {
   e_statistics_packet_shipped = 0,
   e_statistics_packet_lost,
@@ -47,7 +48,8 @@ typedef struct s_station_description {
 typedef struct s_level_description {
   t_boolean set;
   char minimum_class;
-  char *background_drawable;
+  char *background_drawable, *introduction_drawable;
+  unsigned int budget;
   struct s_station_description stations[d_director_stations];
   struct s_events_description events[d_director_events];
 } s_level_events;
@@ -64,6 +66,7 @@ d_declare_class(director) {
   struct s_object *ui_clock;
   struct s_uiable_container *ui_labels[e_statistics_NULL];
   struct s_object *drawable_background;
+  struct s_object *drawable_introduction;
   time_t level_starting_time;
   struct s_level_description current_level;
 } d_declare_class_tail(director);

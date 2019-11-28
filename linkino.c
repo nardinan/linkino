@@ -83,7 +83,9 @@ int linkino_loop_call(struct s_object *environment) {
       struct s_level_description level = {
         d_true,
         'B',
-        "koker_corp",
+        "koker_background",
+        "koker_intro",
+        800,
         {
           {
             d_true,
@@ -166,7 +168,7 @@ int linkino_loop_call(struct s_object *environment) {
             d_false,
             d_false,
             420,
-            2,
+            1,
             3,
             0.0
           },{

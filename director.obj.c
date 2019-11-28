@@ -16,6 +16,8 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "director.obj.h"
+#include "miranda.h"
+#include <miranda/objects/media/drawable.obj.h>
 struct s_director_attributes *p_director_alloc(struct s_object *self) {
   struct s_director_attributes *result = d_prepare(self, director);
   f_memory_new(self);                                                                 /* inherit */
@@ -64,7 +66,6 @@ extern struct s_object *f_director_new(struct s_object *self, struct s_object *e
           e_environment_surface_primary);
     }
   }
-  d_call(director_attributes->connectable_factory, m_connectable_factory_set_credit, 12000.0);
   return self;
 }
 d_define_method(director, add_node)(struct s_object *self, const char *stream_icon_label, const char *title, const char *description, double *offsets_x,
@@ -87,6 +88,11 @@ d_define_method(director, set_level)(struct s_object *self, struct s_level_descr
   d_call(director_attributes->packet_factory, m_packet_factory_reset, NULL);
   d_call(director_attributes->connector_factory, m_connector_factory_reset, NULL);
   d_call(director_attributes->connectable_factory, m_connectable_factory_reset, NULL);
+  if (director_attributes->drawable_introduction) {
+    d_call(director_attributes->environment, m_environment_del_drawable, director_attributes->drawable_introduction,
+        (d_ui_factory_default_level + 3), e_environment_surface_primary);
+    d_delete(director_attributes->drawable_introduction);
+  }
   if (director_attributes->drawable_background) {
     d_call(director_attributes->environment, m_environment_del_drawable, director_attributes->drawable_background, 
         d_ui_factory_default_level, e_environment_surface_primary);
@@ -96,6 +102,17 @@ d_define_method(director, set_level)(struct s_object *self, struct s_level_descr
           level_description.background_drawable, &current_type)))
     d_call(director_attributes->environment, m_environment_add_drawable, director_attributes->drawable_background,
         d_ui_factory_default_level, e_environment_surface_primary);
+  if ((director_attributes->drawable_introduction = d_call(director_attributes->media_factory, m_media_factory_get_media,
+          level_description.introduction_drawable, &current_type))) {
+    double width, height, position_x, position_y;
+    d_call(director_attributes->drawable_introduction, m_drawable_get_dimension, &width, &height);
+    position_x = (v_linkino_width_reference / 2.0) - (width / 2.0);
+    position_y = (v_linkino_height_reference / 2.0) - (height / 2.0);
+    d_call(director_attributes->drawable_introduction, m_drawable_set_position, position_x, position_y);
+    d_call(director_attributes->drawable_introduction, m_drawable_set_maskA, (int)d_director_default_intro_maskA);
+    d_call(director_attributes->environment, m_environment_add_drawable, director_attributes->drawable_introduction,
+        (d_ui_factory_default_level + 3), e_environment_surface_primary);
+  }
   for (size_t index = 0; index < d_director_stations; ++index)
     if (level_description.stations[index].set) {
       d_call(director_attributes->connectable_factory, m_connectable_factory_add_connectable_instance, 
@@ -104,37 +121,38 @@ d_define_method(director, set_level)(struct s_object *self, struct s_level_descr
           level_description.stations[index].position_x,
           level_description.stations[index].position_y);
     }
-
+  d_call(director_attributes->connectable_factory, m_connectable_factory_set_credit, (double)director_attributes->current_level.budget);
   d_call(director_attributes->connectable_factory, m_connectable_factory_set_silent, d_true, NULL);
-  director_attributes->level_starting_time = time(NULL);
   return self;
 }
 d_define_method(director, update_level)(struct s_object *self) {
   d_using(director);
+  time_t current_hour = 7, current_minutes = 0; /* default initial time */
+  char buffer[d_string_buffer_size];
   if (director_attributes->current_level.set) {
-    time_t seconds_elapsed = time(NULL) - director_attributes->level_starting_time, current_hour, 
-           current_minutes;
-    char buffer[d_string_buffer_size];
-    current_hour = 7 + (seconds_elapsed / 60);
-    current_minutes = (seconds_elapsed % 60);
-    snprintf(buffer, d_string_buffer_size, "%02zu:%02zu", current_hour, current_minutes);
-    d_call(director_attributes->ui_labels[e_statistics_clock]->uiable, m_label_set_content_char, buffer, NULL, director_attributes->environment);
-    for (size_t index = 0; index < d_director_events; ++index)
-      if (director_attributes->current_level.events[index].set) {
-        d_call(self, m_director_update_event, &(director_attributes->current_level.events[index]), NULL, seconds_elapsed);
-      } else
-        break;
-    for (size_t index_station = 0; index_station < d_director_stations; ++index_station)
-      if (director_attributes->current_level.stations[index_station].set) {
-        for (size_t index_event = 0; index_event < d_director_events; ++index_event)
-          if (director_attributes->current_level.stations[index_station].events[index_event].set) {
-            d_call(self, m_director_update_event, &(director_attributes->current_level.stations[index_station].events[index_event]),
-                director_attributes->current_level.stations[index_station].unique_code, seconds_elapsed);
-          } else
-            break;
-      } else
-        break;
+   if (!director_attributes->drawable_introduction) {
+      time_t seconds_elapsed = time(NULL) - director_attributes->level_starting_time;
+      current_hour = 7 + (seconds_elapsed / 60);
+      current_minutes = (seconds_elapsed % 60);
+      for (size_t index = 0; index < d_director_events; ++index)
+        if (director_attributes->current_level.events[index].set) {
+          d_call(self, m_director_update_event, &(director_attributes->current_level.events[index]), NULL, seconds_elapsed);
+        } else
+          break;
+      for (size_t index_station = 0; index_station < d_director_stations; ++index_station)
+        if (director_attributes->current_level.stations[index_station].set) {
+          for (size_t index_event = 0; index_event < d_director_events; ++index_event)
+            if (director_attributes->current_level.stations[index_station].events[index_event].set) {
+              d_call(self, m_director_update_event, &(director_attributes->current_level.stations[index_station].events[index_event]),
+                  director_attributes->current_level.stations[index_station].unique_code, seconds_elapsed);
+            } else
+              break;
+        } else
+          break;
+    }
   }
+  snprintf(buffer, d_string_buffer_size, "%02zu:%02zu", current_hour, current_minutes);
+  d_call(director_attributes->ui_labels[e_statistics_clock]->uiable, m_label_set_content_char, buffer, NULL, director_attributes->environment);
   return self;
 }
 d_define_method(director, update_event)(struct s_object *self, struct s_events_description *event, const char *unique_code, time_t seconds_elapsed) {
@@ -152,13 +170,19 @@ d_define_method(director, update_event)(struct s_object *self, struct s_events_d
 d_define_method_override(director, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event) {
   d_using(director);
   t_boolean changed = d_true, connector_selected = d_false;
-  if ((current_event->type == SDL_KEYDOWN) && (current_event->key.keysym.sym == SDLK_TAB)) {
-    d_call(director_attributes->statistics, m_statistics_reset, NULL);
-    d_call(director_attributes->packet_factory, m_packet_factory_reset, NULL);
-    d_call(director_attributes->connector_factory, m_connector_factory_reset, NULL);
-    d_call(director_attributes->connectable_factory, m_connectable_factory_reset, NULL);
-  }
-  if (((intptr_t)d_call(director_attributes->connectable_factory, m_eventable_event, environment, current_event)) != e_eventable_status_captured) {
+  if (director_attributes->drawable_introduction) {
+    /* there is the drawable introduction on screen. This means that the user is still reading it. We'll ignore 
+     * every possible input coming in this specific moment. If the user presses the left button of the mouse and
+     * we have a level loaded, then we delete the introduction and we start the clock */
+    if ((current_event->type == SDL_MOUSEBUTTONUP) && (current_event->button.button == SDL_BUTTON_LEFT)) {
+      d_call(director_attributes->environment, m_environment_del_drawable, director_attributes->drawable_introduction,
+          (d_ui_factory_default_level + 3), e_environment_surface_primary);
+      d_delete(director_attributes->drawable_introduction);
+      director_attributes->drawable_introduction = NULL;
+      if (director_attributes->current_level.set)
+        director_attributes->level_starting_time = time(NULL); // the level is set, we can start the clock
+    }
+  } else if (((intptr_t)d_call(director_attributes->connectable_factory, m_eventable_event, environment, current_event)) != e_eventable_status_captured) {
     struct s_object *result = d_call(director_attributes->connectable_factory, m_connectable_factory_get_selected_node, NULL);
     d_call(director_attributes->connector_factory, m_connector_factory_set_drop, ((result) ? d_true : d_false), result);
     if (((intptr_t)d_call(director_attributes->connector_factory, m_eventable_event, environment, current_event)) != e_eventable_status_captured) {
