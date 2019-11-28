@@ -23,8 +23,12 @@
 #define d_packet_maximum_line_size 256
 #define d_packet_direction_forward (1.0)
 #define d_packet_direction_backward (-1.0)
-#define d_packet_spam         0x0001
-#define d_packet_rogue        0x0002
+/* set of flags that defines the behavior of the device */
+#define d_packet_spam                 0x0001
+#define d_packet_rogue                0x0002
+#define d_packet_accelerate_applied   0x0004
+#define d_packet_decelerate_applied   0x0008
+/* end of flags */
 d_declare_class(packet) {
   struct s_attributes head;
   struct s_object *drawable_icon, *drawable_background;

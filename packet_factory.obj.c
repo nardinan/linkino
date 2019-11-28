@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "packet_factory.obj.h"
+#include "packet.obj.h"
 #include "statistics.obj.h"
 struct s_packet_factory_attributes *p_packet_factory_alloc(struct s_object *self) {
   struct s_packet_factory_attributes *result = d_prepare(self, packet_factory);
@@ -79,12 +80,21 @@ d_define_method(packet_factory, forward_packet)(struct s_object *self, struct s_
         (packet_attributes->outgoing_connectable_link->connectable) &&
         (packet_attributes->outgoing_connectable_link->connector)) {
       struct s_connectable_attributes *connectable_attributes = d_cast(packet_attributes->outgoing_connectable_link->connectable, connectable);
-      if ((connectable_attributes->flags & d_connectable_accelerate_medium) == d_connectable_accelerate_medium)
+      if (((connectable_attributes->flags & d_connectable_accelerate_medium) == d_connectable_accelerate_medium) &&
+          ((packet_attributes->flags & d_packet_accelerate_applied) == 0)) {
         packet_attributes->traveling_speed += d_packet_factory_acceleration_factor;
-      if ((connectable_attributes->flags & d_connectable_accelerate_alot) == d_connectable_accelerate_alot)
+        packet_attributes->flags |= d_packet_accelerate_applied;
+      }
+      if (((connectable_attributes->flags & d_connectable_accelerate_alot) == d_connectable_accelerate_alot) &&
+          ((packet_attributes->flags & d_packet_accelerate_applied) == 0)) {
         packet_attributes->traveling_speed += (d_packet_factory_acceleration_factor * 2.0);
-      if ((connectable_attributes->flags & d_connectable_slow_down_traffic) == d_connectable_slow_down_traffic)
+        packet_attributes->flags |= d_packet_accelerate_applied;
+      }
+      if (((connectable_attributes->flags & d_connectable_slow_down_traffic) == d_connectable_slow_down_traffic) &&
+          ((packet_attributes->flags & d_packet_decelerate_applied) == 0)) {
         packet_attributes->traveling_speed -= d_packet_factory_slow_down_factor;
+        packet_attributes->flags |= d_packet_decelerate_applied;
+      }
       if (((packet_attributes->flags & d_packet_spam) == d_packet_spam) && 
           ((connectable_attributes->flags & d_connectable_block_spam) == d_connectable_block_spam)) {
         /* we need to block the packet: it has been blocked by the node */
@@ -122,9 +132,13 @@ d_define_method(packet_factory, forward_packet)(struct s_object *self, struct s_
             }
           }
         if ((selected_ingoing_connectable_link) && (selected_outgoing_connectable_link) && 
-            (selected_ingoing_connectable_link->connector == selected_outgoing_connectable_link->connector))
+            (selected_ingoing_connectable_link->connector == selected_outgoing_connectable_link->connector)) {
+          /* the packet has been correctly forwarded, now we can remove the flags */
+          packet_attributes->flags &= ~d_packet_accelerate_applied;
+          packet_attributes->flags &= ~d_packet_decelerate_applied;
           d_call(packet, m_packet_set_traveling_next_hop, selected_ingoing_connectable_link->connector, selected_ingoing_connectable_link, 
               selected_outgoing_connectable_link);
+        }
       } else
         d_call(packet, m_packet_set_traveling_complete, NULL);
     }

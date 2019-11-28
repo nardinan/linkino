@@ -281,7 +281,7 @@ d_define_method_override(connector_factory, draw)(struct s_object *self, struct 
             current_snap_effect->is_over = d_true;
           } else
             current_snap_effect->current_mask_A -= d_connector_factory_snap_increment_mask;
-        } else
+        }
           current_snap_effect->current_zoom += d_connector_factory_snap_increment_zoom;
         if (!current_snap_effect->is_over) {
           d_call(connector_factory_attributes->drawable_snap, m_drawable_set_zoom, current_snap_effect->current_zoom);
