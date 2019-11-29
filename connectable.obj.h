@@ -25,6 +25,10 @@
 #define d_connectable_rectangle_G 255
 #define d_connectable_rectangle_B 10
 #define d_connectable_rectangle_A 100
+#define d_connectable_rectangle_used_R 255
+#define d_connectable_rectangle_used_G 10
+#define d_connectable_rectangle_used_B 10
+#define d_connectable_rectangle_used_A 100
 #define d_connectable_code_size 10
 #define d_connectable_min_seconds_between_generation 1
 #define d_connectable_max_seconds_between_generation 10
@@ -54,7 +58,7 @@ d_declare_class(connectable) {
   struct s_connectable_link *active_node;
   struct s_object *ui_label;
   int rectangle_x[d_connectable_rectangle_elements], rectangle_y[d_connectable_rectangle_elements], flags;
-  t_boolean draw_rectangle, normalized, silent;
+  t_boolean draw_rectangle, used_rectangle, normalized, silent;
   time_t next_token_generation, seconds_between_generation_minimum, seconds_between_generation_maximum;
   char unique_code[d_connectable_code_size];
   double price, spam_percentage;

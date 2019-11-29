@@ -146,6 +146,7 @@ d_define_method_override(connectable, event)(struct s_object *self, struct s_obj
       connectable_attributes->rectangle_y[3] = connection_node->offset_y + position_y;
       connectable_attributes->normalized = d_false;
       connectable_attributes->draw_rectangle = d_true;
+      connectable_attributes->used_rectangle = (connection_node->connector)?d_true:d_false;
       changed = d_true;
     }
   }
@@ -191,9 +192,18 @@ d_define_method_override(connectable, draw)(struct s_object *self, struct s_obje
       }
       connectable_attributes->normalized = d_true;
     }
+    int color_R = d_connectable_rectangle_R, 
+        color_G = d_connectable_rectangle_G, 
+        color_B = d_connectable_rectangle_B, 
+        color_A = d_connectable_rectangle_A;
+    if (connectable_attributes->used_rectangle) {
+      color_R = d_connectable_rectangle_used_R;
+      color_G = d_connectable_rectangle_used_G;
+      color_B = d_connectable_rectangle_used_B;
+      color_A = d_connectable_rectangle_used_A;
+    }
     f_primitive_fill_polygon(environment_attributes->renderer, connectable_attributes->rectangle_x, connectable_attributes->rectangle_y,
-        d_connectable_rectangle_elements, d_connectable_rectangle_R, d_connectable_rectangle_G, d_connectable_rectangle_B,
-        d_connectable_rectangle_A);
+        d_connectable_rectangle_elements, color_R, color_G, color_B, color_A);
   }
   d_cast_return(result);
 }
