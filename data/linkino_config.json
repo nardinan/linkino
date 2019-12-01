@@ -6,7 +6,7 @@
 	"window":{
 		"width":720,
 		"height":480,
-		"fullscreen":true
+		"fullscreen":false
 	},
 	"geometry":{
 		"width":720,
@@ -31,6 +31,9 @@
 	},{
 		"font":"dotty_font",
 		"size":60
+	},{
+		"font":"bobcaygr_font",
+		"size":15
 	}],
 	"ui":{
 		"field":{

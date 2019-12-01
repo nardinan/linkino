@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "packet.obj.h"
+#include <miranda/objects/media/ui/label.obj.h>
 struct s_packet_attributes *p_packet_alloc(struct s_object *self) {
   struct s_packet_attributes *result = d_prepare(self, packet);
   f_memory_new(self);                                                                 /* inherit */
@@ -31,9 +32,11 @@ struct s_object *f_packet_new(struct s_object *self, struct s_object *ui_factory
   packet_attributes->drawable_background = d_retain(drawable_background);
   d_assert(packet_attributes->ui_label_content = d_call(ui_factory, m_ui_factory_new_label, d_ui_factory_default_font_id, d_ui_factory_default_font_style,
         body_content));
+  d_assert(packet_attributes->ui_label_header = d_call(ui_factory, m_ui_factory_new_label, d_packet_default_font_id, d_ui_factory_default_font_style,
+        "TO: <unknown>"));
   d_assert(packet_attributes->ui_button_close = d_call(ui_factory, m_ui_factory_new_button, d_ui_factory_default_font_id, d_ui_factory_default_font_style,
         "please, close"));
-  packet_attributes->traveling_speed = 1.0;
+ packet_attributes->traveling_speed = 1.0;
   packet_attributes->flags = flags;
   return self;
 }
@@ -181,10 +184,12 @@ d_define_method_override(packet, draw)(struct s_object *self, struct s_object *e
      */
     if ((packet_attributes->connector_traveling) && 
         (d_call(packet_attributes->connector_traveling, m_connector_get_point, packet_attributes->current_position, &position_x, &position_y))) {
-      double icon_width, icon_height;
+      double icon_width, icon_height, label_width, real_position_x, real_position_y;
+      char buffer[d_string_buffer_size];
       d_call(packet_attributes->drawable_icon, m_drawable_get_dimension, &icon_width, &icon_height);
-      d_call(packet_attributes->drawable_icon, m_drawable_set_position, (double)(position_x - (icon_width / 2.0)), 
-          (double)(position_y - (icon_height / 2.0)));
+      real_position_x = (position_x - (icon_width / 2.0));
+      real_position_y = (position_y - (icon_height / 2.0)); 
+      d_call(packet_attributes->drawable_icon, m_drawable_set_position, real_position_x, real_position_y);
       if ((packet_attributes->flags & d_packet_spam) == d_packet_spam)
         d_call(packet_attributes->drawable_icon, m_drawable_set_maskRGB, (unsigned int)255, (unsigned int)50, (unsigned int)50);
       else
@@ -193,6 +198,14 @@ d_define_method_override(packet, draw)(struct s_object *self, struct s_object *e
               camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
               camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
         while (((intptr_t)d_call(packet_attributes->drawable_icon, m_drawable_draw, environment)) == d_drawable_return_continue);
+      snprintf(buffer, d_string_buffer_size, "TO: <%s>", packet_attributes->unique_final_destination);
+      d_call(packet_attributes->ui_label_header, m_label_set_content_char, buffer, NULL, environment);
+      d_call(packet_attributes->ui_label_header, m_drawable_get_dimension, &label_width, NULL);
+      d_call(packet_attributes->ui_label_header, m_drawable_set_position, (position_x - (label_width / 2.0)), (position_y - (icon_height * 2.0)));
+      if ((d_call(packet_attributes->ui_label_header, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
+              camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
+              camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
+        while (((intptr_t)d_call(packet_attributes->ui_label_header, m_drawable_draw, environment)) == d_drawable_return_continue);
     }
   }
   d_cast_return(d_drawable_return_last);

@@ -23,6 +23,7 @@
 #define d_packet_maximum_line_size 256
 #define d_packet_direction_forward (1.0)
 #define d_packet_direction_backward (-1.0)
+#define d_packet_default_font_id 5
 /* set of flags that defines the behavior of the device */
 #define d_packet_spam                 0x0001
 #define d_packet_rogue                0x0002
@@ -32,7 +33,7 @@
 d_declare_class(packet) {
   struct s_attributes head;
   struct s_object *drawable_icon, *drawable_background;
-  struct s_object *ui_label_content;
+  struct s_object *ui_label_content, *ui_label_header;
   struct s_object *ui_button_close;
   struct s_object *connector_traveling;
   struct s_connectable_link *ingoing_connectable_link, *outgoing_connectable_link;
