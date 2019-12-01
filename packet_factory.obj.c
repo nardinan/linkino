@@ -18,6 +18,7 @@
 #include "packet_factory.obj.h"
 #include "packet.obj.h"
 #include "statistics.obj.h"
+#include <limits.h>
 struct s_packet_factory_attributes *p_packet_factory_alloc(struct s_object *self) {
   struct s_packet_factory_attributes *result = d_prepare(self, packet_factory);
   f_memory_new(self);                                                                 /* inherit */
@@ -104,33 +105,52 @@ d_define_method(packet_factory, forward_packet)(struct s_object *self, struct s_
         struct s_connectable_link *current_connectable_link, *next_connectable_link, *selected_ingoing_connectable_link = NULL,
                                   *selected_outgoing_connectable_link = NULL;
         unsigned int current_hops, selected_hops, current_traveling_packets, selected_traveling_packets;
-        d_foreach(&(connectable_attributes->list_connection_nodes), current_connectable_link, struct s_connectable_link)
+        d_foreach(&(connectable_attributes->list_connection_nodes), current_connectable_link, struct s_connectable_link) {
+          t_boolean best_choice = d_false;
+          current_traveling_packets = 0;
+          for (size_t index = 0; index < d_connectable_max_packets; ++index)
+            if (current_connectable_link->traveling_packets[index])
+              ++current_traveling_packets;
           if ((next_connectable_link = (struct s_connectable_link *)d_call(packet_factory_attributes->connector_factory,
                   m_connector_factory_get_connector_for, current_connectable_link, packet_attributes->ingoing_connectable_link, 
                   packet_attributes->unique_final_destination, &current_hops))) {
-            t_boolean best_choice = d_false;
-            current_traveling_packets = 0;
-            for (size_t index = 0; index < d_connectable_max_packets; ++index)
-              if (current_connectable_link->traveling_packets[index])
-                ++current_traveling_packets;
-            if ((!selected_ingoing_connectable_link) || (!selected_outgoing_connectable_link))                        // criteria if is the only way
+            /* OK the route is usable to reach the final destination. However, we need to evaluate the different criteria defined by the connectable
+             * in order to decide if this one is the right path to take. We can use different element (e.g. the number of hops or the number of 
+             * packets that are currently traveling on that arc) */
+            if ((!selected_ingoing_connectable_link) || (!selected_outgoing_connectable_link))                        // in case no best choice has been done 
+                                                                                                                      // so far
               best_choice = d_true;
-            else if ((connectable_attributes->flags & d_connectable_shape_traffic) == d_connectable_shape_traffic) {  // criteria for the bandwidth shaper
+            else if ((connectable_attributes->flags & d_connectable_shape_traffic) == d_connectable_shape_traffic) {  // criteria used by the shaper
               if (current_traveling_packets < selected_traveling_packets)
                 best_choice = d_true;
             } else {                                                                                                  // criteria used by the router
               if (current_hops < selected_hops)
                 best_choice = d_true;
             }
-            if (best_choice) {
-              struct s_connector_attributes *connector_attributes = d_cast(next_connectable_link->connector, connector);
-              selected_outgoing_connectable_link = next_connectable_link;
-              selected_ingoing_connectable_link = ((connector_attributes->source_link == selected_outgoing_connectable_link)?
-                  connector_attributes->destination_link:connector_attributes->source_link);
-              selected_hops = current_hops;
-              selected_traveling_packets = current_traveling_packets;
+          } else {
+            /* OK the route is not usable to reach the final destination. However, we can find by ourself the different compoenent (e.g. next_connectable_link
+             * and current_hops) and we need to assign them to the system in case we don't have anything selected yet. This means that, in case a packet is
+             * going somewhere and a arc is snapped, it will be bounced back (and it will not stay still at the node endpoint) */
+            if (current_connectable_link->connector) {
+              struct s_connector_attributes *connector_attributes = d_cast(current_connectable_link->connector, connector);
+              if (connector_attributes->source_link == current_connectable_link)
+                next_connectable_link = connector_attributes->destination_link;
+              else
+                next_connectable_link = connector_attributes->source_link;
+              current_hops = UINT_MAX;
+              if ((!selected_ingoing_connectable_link) || (!selected_outgoing_connectable_link))
+                best_choice = d_true;
             }
           }
+          if (best_choice) {
+            struct s_connector_attributes *connector_attributes = d_cast(next_connectable_link->connector, connector);
+            selected_outgoing_connectable_link = next_connectable_link;
+            selected_ingoing_connectable_link = ((connector_attributes->source_link == selected_outgoing_connectable_link)?
+                connector_attributes->destination_link:connector_attributes->source_link);
+            selected_hops = current_hops;
+            selected_traveling_packets = current_traveling_packets;
+          }
+        }
         if ((selected_ingoing_connectable_link) && (selected_outgoing_connectable_link) && 
             (selected_ingoing_connectable_link->connector == selected_outgoing_connectable_link->connector)) {
           /* the packet has been correctly forwarded, now we can remove the flags */

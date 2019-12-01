@@ -184,8 +184,17 @@ d_define_method_override(packet, draw)(struct s_object *self, struct s_object *e
      */
     if ((packet_attributes->connector_traveling) && 
         (d_call(packet_attributes->connector_traveling, m_connector_get_point, packet_attributes->current_position, &position_x, &position_y))) {
-      double icon_width, icon_height, label_width, real_position_x, real_position_y;
+      double icon_width, icon_height, label_width, real_position_x, real_position_y, current_zoom = 1.0;
       char buffer[d_string_buffer_size];
+      /* to estimate the zoom, I'll check if the current position is between 1.0 - d_packet_path_distance_for_zoom and 1.0, or inside 0.0 and 
+       * 0.0 + d_packet_path_distance_for_zoom. On the first one I'll consider 1.0 the minimum zoom (0.0) while on the second one I'll consider the minimum 
+       * zoom in 0.0. */
+      if ((packet_attributes->current_position <= 1.0) && (packet_attributes->current_position >= (1.0 - d_packet_path_distance_for_zoom))) {
+        double zoom_component = packet_attributes->current_position - (1.0 - d_packet_path_distance_for_zoom);
+        current_zoom = 1.0 - (zoom_component / d_packet_path_distance_for_zoom);
+      } else if ((packet_attributes->current_position >= 0.0) && (packet_attributes->current_position <= d_packet_path_distance_for_zoom))
+        current_zoom = (packet_attributes->current_position / d_packet_path_distance_for_zoom);
+      d_call(packet_attributes->drawable_icon, m_drawable_set_zoom, current_zoom);
       d_call(packet_attributes->drawable_icon, m_drawable_get_dimension, &icon_width, &icon_height);
       real_position_x = (position_x - (icon_width / 2.0));
       real_position_y = (position_y - (icon_height / 2.0)); 
