@@ -25,6 +25,7 @@
 #define d_packet_direction_backward (-1.0)
 #define d_packet_default_font_id 5
 #define d_packet_path_distance_for_zoom 0.1
+#define d_packet_path_maximum_zoom 2.0
 /* set of flags that defines the behavior of the device */
 #define d_packet_spam                 0x0001
 #define d_packet_rogue                0x0002
