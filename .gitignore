@@ -16,3 +16,4 @@ collector\.dump\.end\.game
 cmake-build-debug/
 
 .idea/workspace.xml
+cmake
