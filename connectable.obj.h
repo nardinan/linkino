@@ -34,14 +34,15 @@
 #define d_connectable_max_seconds_between_generation 10
 #define d_connectable_max_packets 64
 /* set of flags that defines the behavior of the device */
-#define d_connectable_shape_traffic     0x0001
-#define d_connectable_block_spam        0x0002
-#define d_connectable_accelerate_medium 0x0004
-#define d_connectable_accelerate_alot   0x0008
-#define d_connectable_generate_traffic  0x0010
-#define d_connectable_can_be_acquired   0x0020
-#define d_connectable_cannot_be_moved   0x0040
-#define d_connectable_slow_down_traffic 0x0080
+#define d_connectable_shape_traffic      0x0001
+#define d_connectable_block_spam         0x0002
+#define d_connectable_accelerate_medium  0x0004
+#define d_connectable_accelerate_alot    0x0008
+#define d_connectable_generate_traffic   0x0010
+#define d_connectable_can_be_acquired    0x0020
+#define d_connectable_cannot_be_moved    0x0040
+#define d_connectable_slow_down_traffic  0x0080
+#define d_connectable_refresh_expiration 0x0100
 /* end of flags */
 extern unsigned int index_human_name;
 extern const char *list_human_names[];

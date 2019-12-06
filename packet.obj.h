@@ -26,11 +26,13 @@
 #define d_packet_default_font_id 5
 #define d_packet_path_distance_for_zoom 0.1
 #define d_packet_path_maximum_zoom 2.0
+#define d_packet_default_expiration_seconds 10
 /* set of flags that defines the behavior of the device */
 #define d_packet_spam                 0x0001
 #define d_packet_rogue                0x0002
 #define d_packet_accelerate_applied   0x0004
 #define d_packet_decelerate_applied   0x0008
+#define d_packet_expiration_renewed   0x0010
 /* end of flags */
 d_declare_class(packet) {
   struct s_attributes head;
@@ -42,7 +44,7 @@ d_declare_class(packet) {
   double traveling_speed, current_position, destination_position, current_direction; // current_position has to be normalized between 0 and 1
   char unique_initial_source[d_connectable_code_size], unique_final_destination[d_connectable_code_size];
   t_boolean analyzing, traveling, at_destination;
-  time_t time_launched, time_arrived;
+  time_t time_launched, time_arrived, time_expiration;
   unsigned int hops_performed;
   int flags;
 } d_declare_class_tail(packet);
@@ -58,6 +60,8 @@ d_declare_method(packet, set_analyzing)(struct s_object *self, t_boolean analyzi
 d_declare_method(packet, set_traveling_speed)(struct s_object *self, double traveling_speed);
 d_declare_method(packet, is_arrived_to_its_hop)(struct s_object *self);
 d_declare_method(packet, is_arrived_to_its_destination)(struct s_object *self);
+d_declare_method(packet, is_expired)(struct s_object *self);
+d_declare_method(packet, refresh_expiration_date)(struct s_object *self);
 d_declare_method(packet, move_by)(struct s_object *self, double movement);
 d_declare_method(packet, event)(struct s_object *self, struct s_object *environment, SDL_Event *current_event);
 d_declare_method(packet, draw)(struct s_object *self, struct s_object *environment);

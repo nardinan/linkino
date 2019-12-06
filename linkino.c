@@ -15,6 +15,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
+#include "connectable.obj.h"
 #include "loader.obj.h"
 #include "director.obj.h"
 struct s_object *loader;
@@ -69,7 +70,7 @@ int linkino_loop_call(struct s_object *environment) {
         3.0
       };
       d_call(director, m_director_add_node, "router", "ROUTER", "It routes the packet to destination", offsets_x_router, offsets_y_router, 
-          (size_t)4, 150.0, (d_connectable_can_be_acquired));
+          (size_t)4, 150.0, (d_connectable_can_be_acquired | d_connectable_refresh_expiration));
       d_call(director, m_director_add_node, "firewall", "FIREWALL", "It removes the spam", offsets_x_firewall, offsets_y_firewall, 
           (size_t)2, 200.0, (d_connectable_can_be_acquired | d_connectable_block_spam | d_connectable_slow_down_traffic));
       d_call(director, m_director_add_node, "shaper", "SHAPER", "It shapes the traffic", offsets_x_shaper, offsets_y_shaper, 

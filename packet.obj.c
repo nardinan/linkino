@@ -30,13 +30,12 @@ struct s_object *f_packet_new(struct s_object *self, struct s_object *ui_factory
   struct s_packet_attributes *packet_attributes = p_packet_alloc(self);
   packet_attributes->drawable_icon = d_retain(drawable_icon);
   packet_attributes->drawable_background = d_retain(drawable_background);
-  d_assert(packet_attributes->ui_label_content = d_call(ui_factory, m_ui_factory_new_label, d_ui_factory_default_font_id, d_ui_factory_default_font_style,
-        body_content));
-  d_assert(packet_attributes->ui_label_header = d_call(ui_factory, m_ui_factory_new_label, d_packet_default_font_id, d_ui_factory_default_font_style,
-        "TO: <unknown>"));
-  d_assert(packet_attributes->ui_button_close = d_call(ui_factory, m_ui_factory_new_button, d_ui_factory_default_font_id, d_ui_factory_default_font_style,
-        "please, close"));
- packet_attributes->traveling_speed = 1.0;
+  d_assert(packet_attributes->ui_label_content = d_call(ui_factory, m_ui_factory_new_label, d_ui_factory_default_font_id, 
+        d_ui_factory_default_font_style, body_content));
+  d_assert(packet_attributes->ui_label_header = d_call(ui_factory, m_ui_factory_new_label, d_packet_default_font_id, 
+        d_ui_factory_default_font_style, "TO: <unknown>"));
+  packet_attributes->time_expiration = (time(NULL) + d_packet_default_expiration_seconds);
+  packet_attributes->traveling_speed = 1.0;
   packet_attributes->flags = flags;
   return self;
 }
@@ -155,6 +154,15 @@ d_define_method(packet, is_arrived_to_its_destination)(struct s_object *self) {
   d_using(packet);
   d_cast_return((packet_attributes->at_destination));
 }
+d_define_method(packet, is_expired)(struct s_object *self) {
+  d_using(packet);
+  d_cast_return((packet_attributes->time_expiration < time(NULL)));
+}
+d_define_method(packet, refresh_expiration_date)(struct s_object *self) {
+  d_using(packet);
+  packet_attributes->time_expiration = (time(NULL) + d_packet_default_expiration_seconds);
+  return self;
+}
 d_define_method(packet, move_by)(struct s_object *self, double movement) {
   d_using(packet);
   /* if the packet is not traveling, the movement is ignored, obviously */
@@ -185,7 +193,9 @@ d_define_method_override(packet, draw)(struct s_object *self, struct s_object *e
     if ((packet_attributes->connector_traveling) && 
         (d_call(packet_attributes->connector_traveling, m_connector_get_point, packet_attributes->current_position, &position_x, &position_y))) {
       double icon_width, icon_height, label_width, real_position_x, real_position_y, current_zoom = d_packet_path_maximum_zoom;
+      unsigned int mask_A = 0;
       char buffer[d_string_buffer_size];
+      time_t residual_time, current_time = time(NULL);
       /* to estimate the zoom, I'll check if the current position is between 1.0 - d_packet_path_distance_for_zoom and 1.0, or inside 0.0 and 
        * 0.0 + d_packet_path_distance_for_zoom. On the first one I'll consider 1.0 the minimum zoom (0.0) while on the second one I'll consider the minimum 
        * zoom in 0.0. */
@@ -196,6 +206,9 @@ d_define_method_override(packet, draw)(struct s_object *self, struct s_object *e
         current_zoom = (packet_attributes->current_position / d_packet_path_distance_for_zoom) * d_packet_path_maximum_zoom;
       d_call(packet_attributes->drawable_icon, m_drawable_set_zoom, current_zoom);
       d_call(packet_attributes->drawable_icon, m_drawable_get_dimension, &icon_width, &icon_height);
+      /* the packet needs to be colored and drawn in the right way. If the packet is spam, then a red mask is applied, otherwise the mask is
+       * reset (in case a packet changes its status at some point). Moreover, a packet has an expiration date (by default 10 seconds) and 
+       * the alpha channel has to be applied accordingly. */
       real_position_x = (position_x - (icon_width / 2.0));
       real_position_y = (position_y - (icon_height / 2.0)); 
       d_call(packet_attributes->drawable_icon, m_drawable_set_position, real_position_x, real_position_y);
@@ -203,6 +216,9 @@ d_define_method_override(packet, draw)(struct s_object *self, struct s_object *e
         d_call(packet_attributes->drawable_icon, m_drawable_set_maskRGB, (unsigned int)255, (unsigned int)50, (unsigned int)50);
       else
         d_call(packet_attributes->drawable_icon, m_drawable_set_maskRGB, (unsigned int)255, (unsigned int)255, (unsigned int)255);
+      if (current_time < packet_attributes->time_expiration)
+        mask_A = ((double)((double)(packet_attributes->time_expiration - current_time)/(double)d_packet_default_expiration_seconds) * 255.0);
+      d_call(packet_attributes->drawable_icon, m_drawable_set_maskA, mask_A);
       if ((d_call(packet_attributes->drawable_icon, m_drawable_normalize_scale, camera_attributes->scene_reference_w, camera_attributes->scene_reference_h,
               camera_attributes->scene_offset_x, camera_attributes->scene_offset_y, camera_attributes->scene_center_x, camera_attributes->scene_center_y,
               camera_attributes->screen_w, camera_attributes->screen_h, camera_attributes->scene_zoom)))
@@ -260,7 +276,6 @@ d_define_method(packet, delete)(struct s_object *self, struct s_packet_attribute
   d_delete(attributes->drawable_icon);
   d_delete(attributes->drawable_background);
   d_delete(attributes->ui_label_content);
-  d_delete(attributes->ui_button_close);
   return NULL;
 }
 d_define_class(packet) {d_hook_method(packet, e_flag_public, set_traveling),
@@ -270,6 +285,8 @@ d_define_class(packet) {d_hook_method(packet, e_flag_public, set_traveling),
   d_hook_method(packet, e_flag_public, set_traveling_speed),
   d_hook_method(packet, e_flag_public, is_arrived_to_its_hop),
   d_hook_method(packet, e_flag_public, is_arrived_to_its_destination),
+  d_hook_method(packet, e_flag_public, is_expired),
+  d_hook_method(packet, e_flag_public, refresh_expiration_date),
   d_hook_method(packet, e_flag_public, move_by),
   d_hook_method_override(packet, e_flag_public, eventable, event),
   d_hook_method_override(packet, e_flag_public, drawable, draw),

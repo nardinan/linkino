@@ -25,6 +25,7 @@
 #define d_connector_factory_snap_initial_mask 255
 #define d_connector_factory_snap_final_mask 0
 #define d_connector_factory_snap_increment_mask 15
+#define d_connector_factory_increment_split_position 0.05
 struct s_snap_effect { d_list_node_head;
   double position_x, position_y, current_zoom;
   int current_mask_A;

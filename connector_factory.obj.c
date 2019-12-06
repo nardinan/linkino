@@ -200,7 +200,16 @@ d_define_method_override(connector_factory, event)(struct s_object *self, struct
        */
       d_call(connector_factory_attributes->active_connector, m_connector_set_destination, (double)mouse_x, (double)mouse_y,
           connector_factory_attributes->destination_link);
-      if (current_event->type == SDL_MOUSEBUTTONDOWN) {
+      if (current_event->type == SDL_MOUSEWHEEL) {
+        double current_separation;
+        d_call(connector_factory_attributes->active_connector, m_connector_get_separation, &current_separation);
+        current_separation += (d_connector_factory_increment_split_position * current_event->wheel.y);
+        if (current_separation < 0.0)
+          current_separation = 0.0;
+        else if (current_separation > 1.0)
+          current_separation = 1.0;
+        d_call(connector_factory_attributes->active_connector, m_connector_set_separation, current_separation);
+      } else if (current_event->type == SDL_MOUSEBUTTONDOWN) {
         t_boolean reset_entry = d_false;
         if ((connector_factory_attributes->approve_drop) && (connector_factory_attributes->destination_link)) {
           if (current_event->button.button == SDL_BUTTON_LEFT) {

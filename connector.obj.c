@@ -72,6 +72,16 @@ d_define_method(connector, set_weight)(struct s_object *self, double current_wei
   connector_attributes->target_weight = current_weight;
   return self;
 }
+d_define_method(connector, set_separation)(struct s_object *self, double separation) {
+  d_using(connector);
+  connector_attributes->separation = separation;
+  return self;
+}
+d_define_method(connector, get_separation)(struct s_object *self, double *separation) {
+  d_using(connector);
+  *separation = connector_attributes->separation;
+  return self;
+}
 d_define_method(connector, get_point)(struct s_object *self, double percentage_path, double *position_x, double *position_y) {
   d_using(connector);
   struct s_object *result = NULL;
@@ -340,6 +350,8 @@ d_define_method(connector, delete)(struct s_object *self, struct s_connector_att
 d_define_class(connector) {d_hook_method(connector, e_flag_public, set_starting),
   d_hook_method(connector, e_flag_public, set_destination),
   d_hook_method(connector, e_flag_public, set_weight),
+  d_hook_method(connector, e_flag_public, set_separation),
+  d_hook_method(connector, e_flag_public, get_separation),
   d_hook_method(connector, e_flag_public, get_point),
   d_hook_method(connector, e_flag_private, is_over_line),
   d_hook_method(connector, e_flag_public, is_over),

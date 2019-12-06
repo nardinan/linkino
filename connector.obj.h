@@ -44,6 +44,8 @@ extern struct s_object *f_connector_new(struct s_object *self, struct s_object *
 d_declare_method(connector, set_starting)(struct s_object *self, double starting_x, double starting_y, struct s_connectable_link *link);
 d_declare_method(connector, set_destination)(struct s_object *self, double destination_x, double destination_y, struct s_connectable_link *link);
 d_declare_method(connector, set_weight)(struct s_object *self, double current_weight);
+d_declare_method(connector, set_separation)(struct s_object *self, double separation);
+d_declare_method(connector, get_separation)(struct s_object *self, double *separation);
 d_declare_method(connector, get_point)(struct s_object *self, double percentage_path, double *position_x, double *position_y);
 d_declare_method(connector, is_over_line)(struct s_object *self, int position_x, int position_y, int line_start_x, int line_start_y, 
     int line_end_x, int line_end_y);

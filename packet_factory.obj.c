@@ -16,6 +16,7 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 #include "packet_factory.obj.h"
+#include "connectable.obj.h"
 #include "packet.obj.h"
 #include "statistics.obj.h"
 #include <limits.h>
@@ -96,6 +97,11 @@ d_define_method(packet_factory, forward_packet)(struct s_object *self, struct s_
         packet_attributes->traveling_speed -= d_packet_factory_slow_down_factor;
         packet_attributes->flags |= d_packet_decelerate_applied;
       }
+      if (((connectable_attributes->flags & d_connectable_refresh_expiration) == d_connectable_refresh_expiration) &&
+          ((packet_attributes->flags & d_packet_expiration_renewed) == 0)) {
+        d_call(packet, m_packet_refresh_expiration_date, NULL);
+        packet_attributes->flags |= d_packet_expiration_renewed;
+      }
       if (((packet_attributes->flags & d_packet_spam) == d_packet_spam) && 
           ((connectable_attributes->flags & d_connectable_block_spam) == d_connectable_block_spam)) {
         /* we need to block the packet: it has been blocked by the node */
@@ -156,6 +162,7 @@ d_define_method(packet_factory, forward_packet)(struct s_object *self, struct s_
           /* the packet has been correctly forwarded, now we can remove the flags */
           packet_attributes->flags &= ~d_packet_accelerate_applied;
           packet_attributes->flags &= ~d_packet_decelerate_applied;
+          packet_attributes->flags &= ~d_packet_expiration_renewed;
           d_call(packet, m_packet_set_traveling_next_hop, selected_ingoing_connectable_link->connector, selected_ingoing_connectable_link, 
               selected_outgoing_connectable_link);
         }
@@ -169,6 +176,7 @@ d_define_method(packet_factory, sort_packet)(struct s_object *self) {
   d_using(packet_factory);
   t_boolean packet_deleted = d_true;
   size_t entries;
+  time_t current_time = time(NULL);
   d_call(packet_factory_attributes->array_packets_traveling, m_array_size, &entries);
   while (packet_deleted) {
     struct s_object *current_packet;
@@ -176,7 +184,8 @@ d_define_method(packet_factory, sort_packet)(struct s_object *self) {
     for (size_t index = 0; index < entries; ++index) {
       if ((current_packet = d_call(packet_factory_attributes->array_packets_traveling, m_array_get, index))) {
         struct s_packet_attributes *packet_attributes = d_cast(current_packet, packet);
-        if ((!packet_attributes->ingoing_connectable_link) ||
+        if (((intptr_t)d_call(current_packet, m_packet_is_expired, NULL)) ||
+            (!packet_attributes->ingoing_connectable_link) ||
             (!packet_attributes->ingoing_connectable_link->connectable) ||
             (!packet_attributes->ingoing_connectable_link->connector) ||
             (!packet_attributes->outgoing_connectable_link) ||
