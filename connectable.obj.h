@@ -33,6 +33,9 @@
 #define d_connectable_min_seconds_between_generation 1
 #define d_connectable_max_seconds_between_generation 10
 #define d_connectable_max_packets 64
+#define d_connectable_disconnected_start_mask 85
+#define d_connectable_disconnected_end_mask 255
+#define d_connectable_disconnected_mask_increment 10
 /* set of flags that defines the behavior of the device */
 #define d_connectable_shape_traffic      0x0001
 #define d_connectable_block_spam         0x0002
@@ -59,7 +62,7 @@ d_declare_class(connectable) {
   struct s_connectable_link *active_node;
   struct s_object *ui_label;
   int rectangle_x[d_connectable_rectangle_elements], rectangle_y[d_connectable_rectangle_elements], flags;
-  t_boolean draw_rectangle, used_rectangle, normalized, silent;
+  t_boolean draw_rectangle, used_rectangle, normalized, silent, mask, increment_mask;
   time_t next_token_generation, seconds_between_generation_minimum, seconds_between_generation_maximum;
   char unique_code[d_connectable_code_size];
   double price, spam_percentage;

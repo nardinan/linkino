@@ -38,6 +38,7 @@ extern struct s_object *f_connectable_new(struct s_object *self, struct s_object
   connectable_attributes->seconds_between_generation_minimum = d_connectable_min_seconds_between_generation;
   connectable_attributes->seconds_between_generation_maximum = d_connectable_max_seconds_between_generation;
   connectable_attributes->flags = flags;
+  connectable_attributes->mask = 255;
   return self;
 }
 d_define_method(connectable, set_generate_traffic_speed)(struct s_object *self, time_t minimum_seconds_between_traffic,
@@ -160,6 +161,7 @@ d_define_method_override(connectable, draw)(struct s_object *self, struct s_obje
   struct s_connectable_link *connection_node;
   double position_x, position_y, width, height;
   int result = (intptr_t)d_call_owner(self, bitmap, m_drawable_draw, environment); /* recall the father's draw method */
+  t_boolean connected = d_true;
   d_call(&(drawable_attributes->point_destination), m_point_get, &position_x, &position_y);
   d_call(&(drawable_attributes->point_dimension), m_point_get, &width, &height);
   if (connectable_attributes->ui_label) {
@@ -176,7 +178,18 @@ d_define_method_override(connectable, draw)(struct s_object *self, struct s_obje
   d_foreach(&(connectable_attributes->list_connection_nodes), connection_node, struct s_connectable_link) {
     connection_node->final_position_x = (connection_node->offset_x + position_x + (connection_node->width / 2.0));
     connection_node->final_position_y = (connection_node->offset_y + position_y + (connection_node->height / 2.0));
+    if (!connection_node->connector)
+      connected = d_false;
   }
+  if (!connected) {
+    if (connectable_attributes->mask >= d_connectable_disconnected_end_mask)
+      connectable_attributes->increment_mask = -(d_connectable_disconnected_mask_increment);
+    else if (connectable_attributes->mask <= d_connectable_disconnected_start_mask)
+      connectable_attributes->increment_mask = d_connectable_disconnected_mask_increment;
+    connectable_attributes->mask += connectable_attributes->increment_mask;
+  } else 
+    connectable_attributes->mask = d_connectable_disconnected_end_mask;
+  d_call(self, m_drawable_set_maskRGB, connectable_attributes->mask, connectable_attributes->mask, connectable_attributes->mask);
   if (connectable_attributes->draw_rectangle) {
     if (!connectable_attributes->normalized) {
       /* we need to normalize the values stored into the rectangle x and y coordinates, accordingly to the camera */
