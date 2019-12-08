@@ -99,7 +99,7 @@ int linkino_loop_call(struct s_object *environment) {
                 d_true,
                 d_false,
                 d_false,
-                30,
+                60,
                 3,
                 5,
                 0.8
@@ -154,7 +154,7 @@ int linkino_loop_call(struct s_object *environment) {
             d_false,
             60,
             3,
-            5,
+            6,
             0.0
           },{
             d_true,
@@ -169,8 +169,16 @@ int linkino_loop_call(struct s_object *environment) {
             d_false,
             d_false,
             420,
-            1,
-            3,
+            2,
+            5,
+            0.0
+          },{
+            d_true,
+            d_false,
+            d_true,
+            720,
+            0,
+            0,
             0.0
           },{
             d_false
