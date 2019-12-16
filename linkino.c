@@ -35,36 +35,36 @@ int linkino_loop_call(struct s_object *environment) {
       struct s_media_factory_attributes *media_factory_attributes = d_cast(loader_attributes->media_factory, media_factory);
       struct s_object *director = f_director_new(d_new(director), environment, loader_attributes->ui_factory, loader_attributes->media_factory);
       double offsets_x_router[] = {
-        30.0,
-        1.0,
-        30.0,
-        59.0
+        2.0,
+        13.0,
+        24.0,
+        35.0
       }, offsets_y_router[] = {
-        1.0,
-        21.0,
-        42.0,
-        20.0
+        31.0,
+        31.0,
+        31.0,
+        31.0
       }, offsets_x_firewall[] = {
+        25.0,
+        25.0
+      }, offsets_y_firewall[] = {
         1.0,
         42.0
-      }, offsets_y_firewall[] = {
-        23.0,
-        23.0
       }, offsets_x_computer[] = {
         87.0
       }, offsets_y_computer[] = {
         61.0
       }, offsets_x_shaper[] = {
         1.0,
-        29.0,
+        15.0,
         29.0
       }, offsets_y_shaper[] = {
-        13.0,
-        5.0,
-        19.0
+        21.0,
+        21.0,
+        21.0
       }, offsets_x_booster[] = {
         1.0,
-        40.0
+        41.0
       }, offsets_y_booster[] = {
         3.0,
         3.0
