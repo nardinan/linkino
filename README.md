@@ -2,7 +2,10 @@ THE LINKER (Geneva Game Developers - Dec 2019)
 -------------------------
 
 The linker is a quick'n dirty game written in a couple of weeks for the Geneva Game Developers Meetup of December 2019. In this game you are the so-called "expert", called to help a set of different companies with their networking problems.
-You have a scenario, you have a budget and a set of tools you can buy to solve their problems. You can re-shape the network in real time and the system assigns you a score based on the number of packets (represented as e-mail) that arrived at destination, the broken packages (spam) at destination and a set of other non-well-calibrated criteria.
+
+![In game screenshot](screenshot.png)
+
+You have a scenario, you have a budget and a set of tools you can buy to solve their problems. You can re-shape the network in real time and the system assigns you a score based on the number of packets (represented as e-mail) that arrived at destination, the broken packages (spam) at destination and a set of others non-well-calibrated criteria.
 
 The game is *far* from being complete (there is only one level and doesn't even end). There is a long-long list of things I wanted to integrate, but I got bored during the development and I am waiting to reach once again the good amount of inspiration.
 
