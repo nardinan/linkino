@@ -268,6 +268,6 @@ int main(int argc, char *argv[]) {
   }
   d_pool_end;
   d_pool_destroy;
-  f_memory_destroy();
+  f_memory_destroy(d_true);
   return 0;
 }
